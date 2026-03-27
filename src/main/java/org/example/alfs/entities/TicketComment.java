@@ -1,0 +1,35 @@
+package org.example.alfs.entities;
+
+import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+
+import java.time.LocalDateTime;
+
+/*
+Represents comment on a ticket.
+The comments are written by a SystemUser.
+ */
+@Entity
+@Table(name="ticket_comment")
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class TicketComment {
+
+    @Id
+    @GeneratedValue
+    private Long id;
+
+    private String message;
+
+    private LocalDateTime createdAt;
+
+    @ManyToOne
+    private Ticket ticket;
+
+    @ManyToOne
+    private SystemUser author;
+}

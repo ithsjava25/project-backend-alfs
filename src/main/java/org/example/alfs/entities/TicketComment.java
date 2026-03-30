@@ -11,7 +11,7 @@ Represents comment on a ticket.
 The comments are written by a User.
  */
 @Entity
-@Table(name="ticket_comment")
+@Table(name = "ticket_comments")
 @Getter
 @Setter
 @AllArgsConstructor
@@ -22,6 +22,7 @@ public class TicketComment {
     @GeneratedValue
     private Long id;
 
+    @Column(nullable = false, length = 2000)
     private String message;
 
     private LocalDateTime createdAt;

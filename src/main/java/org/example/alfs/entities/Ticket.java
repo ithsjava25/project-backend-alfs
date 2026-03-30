@@ -2,6 +2,7 @@ package org.example.alfs.entities;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.example.alfs.enums.TicketStatus;
 
 
 import java.time.LocalDateTime;
@@ -24,25 +25,43 @@ public class Ticket {
     @GeneratedValue
     private Long id;
 
+    @Column(nullable = false, length = 255)
     private String title;
 
+    @Column(columnDefinition = "TEXT")
     private String description;
 
-    private String status;
+    @Enumerated(EnumType.STRING)
+    private TicketStatus status;
 
     @Column(nullable = false, unique = true, length = 128, updatable = false)
     private String reporterToken;
 
     private LocalDateTime createdAt;
 
+    private LocalDateTime updatedAt;
+
     @PrePersist
     public void prePersist() {
         createdAt = LocalDateTime.now();
+        if (status == null) {
+            status = TicketStatus.OPEN;
+        }
+    }
+
+    @PreUpdate
+    public void preUpdate() {
+        updatedAt = LocalDateTime.now();
     }
 
     @OneToMany(mappedBy = "ticket", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Attachment> attachments;
 
     @ManyToOne
-    private User assignedHandler;
+    @JoinColumn(name = "reporter_id", nullable = true)  // null if anonymous
+    private User reporter;
+
+    @ManyToOne
+    @JoinColumn(name = "investigator_id", nullable = true)
+    private User investigator;
 }

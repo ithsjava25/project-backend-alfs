@@ -11,7 +11,7 @@ Represents comment on a ticket.
 The comments are written by a User.
  */
 @Entity
-@Table(name = "ticket_comments")
+@Table(name = "ticket_comment")
 @Getter
 @Setter
 @AllArgsConstructor

@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 
 /*
 Represents comment on a ticket.
-The comments are written by a SystemUser.
+The comments are written by a User.
  */
 @Entity
 @Table(name="ticket_comment")
@@ -31,5 +31,5 @@ public class TicketComment {
     private Ticket ticket;
 
     @ManyToOne
-    private SystemUser author;
+    private User author;
 }

@@ -41,5 +41,5 @@ public class AuditLog {
     private Ticket ticket;
 
     @ManyToOne
-    private SystemUser user;
+    private User user;
 }

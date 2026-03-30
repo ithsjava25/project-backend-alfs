@@ -10,11 +10,11 @@ Represents a system user.
 Users have different roles such as admin or investigator.
  */
 @Entity
-@Table(name="system_user")
+@Table(name="users")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class SystemUser {
+public class User {
 
     @GeneratedValue
     @Id

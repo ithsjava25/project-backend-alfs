@@ -43,5 +43,5 @@ public class Ticket {
     private List<Attachment> attachment;
 
     @ManyToOne
-    private SystemUser assignedHandler;
+    private User assignedHandler;
 }

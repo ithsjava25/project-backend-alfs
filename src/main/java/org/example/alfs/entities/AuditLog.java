@@ -24,6 +24,7 @@ public class AuditLog {
     private Long id;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 50)
     private AuditAction action;
 
     private String fieldName;

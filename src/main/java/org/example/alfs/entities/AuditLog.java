@@ -2,6 +2,7 @@ package org.example.alfs.entities;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.example.alfs.enums.AuditAction;
 
 import java.time.LocalDateTime;
 
@@ -22,7 +23,8 @@ public class AuditLog {
     @GeneratedValue
     private Long id;
 
-    private String action;
+    @Enumerated(EnumType.STRING)
+    private AuditAction action;
 
     private String fieldName;
 

@@ -1,9 +1,7 @@
 package org.example.alfs.entities;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 /*
 Represents a system user.
@@ -11,7 +9,8 @@ Users have different roles such as admin or investigator.
  */
 @Entity
 @Table(name="users")
-@Data
+@Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 public class User {

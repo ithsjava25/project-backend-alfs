@@ -1,9 +1,7 @@
 package org.example.alfs.entities;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 
 import java.time.LocalDateTime;
@@ -16,7 +14,8 @@ The ticket can be followed by the anonymous reporter by using the reporterToken.
 
 @Entity
 @Table(name="ticket")
-@Data
+@Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 public class Ticket {

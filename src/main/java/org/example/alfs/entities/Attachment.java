@@ -1,9 +1,7 @@
 package org.example.alfs.entities;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
@@ -12,7 +10,8 @@ Represent a file uploaded with Ticket.
 Stores metadata about the file and the file reference s3key.
  */
 @Entity
-@Data
+@Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 public class Attachment {

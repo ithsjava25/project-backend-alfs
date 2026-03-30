@@ -1,9 +1,7 @@
 package org.example.alfs.entities;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 
 import java.time.LocalDateTime;
@@ -14,7 +12,8 @@ The comments are written by a User.
  */
 @Entity
 @Table(name="ticket_comment")
-@Data
+@Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 public class TicketComment {

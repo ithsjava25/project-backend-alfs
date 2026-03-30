@@ -28,10 +28,12 @@ public class Ticket {
     @Column(nullable = false, length = 255)
     private String title;
 
-    @Column(columnDefinition = "TEXT")
+    @Lob
+    @Basic(fetch = FetchType.LAZY)
     private String description;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 32)
     private TicketStatus status;
 
     @Column(nullable = false, unique = true, length = 128, updatable = false)
@@ -57,11 +59,11 @@ public class Ticket {
     @OneToMany(mappedBy = "ticket", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Attachment> attachments;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "reporter_id", nullable = true)  // null if anonymous
     private User reporter;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "investigator_id", nullable = true)
     private User investigator;
 }

@@ -27,6 +27,11 @@ public class TicketComment {
 
     private LocalDateTime createdAt;
 
+    @PrePersist
+    public void prePersist() {
+        createdAt = LocalDateTime.now();
+    }
+
     @ManyToOne
     private Ticket ticket;
 

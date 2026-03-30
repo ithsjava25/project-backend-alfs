@@ -20,8 +20,10 @@ public class Attachment {
     @GeneratedValue
     private Long id;
 
+    @Column(nullable = false)
     private String fileName;
 
+    @Column(nullable = false)
     private String s3Key;
 
     private LocalDateTime uploadedAt;

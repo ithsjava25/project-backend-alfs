@@ -13,7 +13,7 @@ The ticket can be followed by the anonymous reporter by using the reporterToken.
  */
 
 @Entity
-@Table(name="ticket")
+@Table(name = "ticket")
 @Getter
 @Setter
 @AllArgsConstructor
@@ -30,16 +30,18 @@ public class Ticket {
 
     private String status;
 
+    @Column(nullable = false, unique = true, length = 128, updatable = false)
     private String reporterToken;
 
     private LocalDateTime createdAt;
+
     @PrePersist
     public void prePersist() {
         createdAt = LocalDateTime.now();
     }
 
-    @OneToMany(mappedBy = "ticket")
-    private List<Attachment> attachment;
+    @OneToMany(mappedBy = "ticket", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Attachment> attachments;
 
     @ManyToOne
     private User assignedHandler;

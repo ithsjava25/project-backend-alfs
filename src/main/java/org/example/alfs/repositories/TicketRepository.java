@@ -20,4 +20,5 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
 
     // Filtrera fall efter status
     List<Ticket> findByStatus(TicketStatus status);
+
 }

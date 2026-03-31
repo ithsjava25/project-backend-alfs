@@ -2,6 +2,8 @@ package org.example.alfs.repositories;
 
 import org.example.alfs.entities.Ticket;
 import org.example.alfs.enums.TicketStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -20,5 +22,11 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
 
     // Filtrera fall efter status
     List<Ticket> findByStatus(TicketStatus status);
+
+    // Filtrera fall efter status och utredare
+    List<Ticket> findByStatusAndInvestigatorId(TicketStatus status, Long investigatorId);
+
+    // Hämta alla fall, paginerat
+    Page<Ticket> findAll(Pageable pageable);
 
 }

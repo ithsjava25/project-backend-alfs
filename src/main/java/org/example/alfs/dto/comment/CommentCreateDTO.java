@@ -5,7 +5,7 @@ import lombok.Data;
 
 /*
  * DTO used to create a comment on a ticket.
- * Can be used by both reporter and investigator.
+ * Can be used by reporter, investigator and admin.
  */
 @Data
 public class CommentCreateDTO {

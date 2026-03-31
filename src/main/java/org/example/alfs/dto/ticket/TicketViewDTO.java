@@ -1,4 +1,4 @@
-package org.example.alfs.dto;
+package org.example.alfs.dto.ticket;
 
 import lombok.Data;
 

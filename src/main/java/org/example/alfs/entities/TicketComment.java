@@ -25,6 +25,10 @@ public class TicketComment {
     @Column(nullable = false, length = 2000)
     private String message;
 
+    // Möjlighet att skriva internt meddelande (synligt för utredare/admin, inte för anmälare)
+    @Column(nullable = false)
+    private boolean isInternalNote = false;
+
     private LocalDateTime createdAt;
 
     @PrePersist

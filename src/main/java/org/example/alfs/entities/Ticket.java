@@ -57,7 +57,13 @@ public class Ticket {
     }
 
     @OneToMany(mappedBy = "ticket", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<TicketComment> comments;
+
+    @OneToMany(mappedBy = "ticket", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Attachment> attachments;
+
+    @OneToMany(mappedBy = "ticket")
+    private List<AuditLog> auditLogs;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "reporter_id", nullable = true)  // null if anonymous

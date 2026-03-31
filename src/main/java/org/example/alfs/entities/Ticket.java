@@ -7,6 +7,7 @@ import org.example.alfs.enums.TicketStatus;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 /*
 Representing a whistleblower report.
@@ -46,9 +47,8 @@ public class Ticket {
     @PrePersist
     public void prePersist() {
         createdAt = LocalDateTime.now();
-        if (status == null) {
-            status = TicketStatus.OPEN;
-        }
+        if (status == null) status = TicketStatus.OPEN;
+        if (reporterToken == null) reporterToken = UUID.randomUUID().toString(); // Skapa token för anonyma anmälare?
     }
 
     @PreUpdate

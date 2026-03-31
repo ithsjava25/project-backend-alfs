@@ -21,5 +21,5 @@ public class TicketViewDTO {
     private String status;
     private LocalDateTime createdAt;
 
-    private Long assignedHandlerId;
+    private Long assignedInvestigatorId;
 }

@@ -10,5 +10,5 @@ Admin assigns ticket to investigator
 public class TicketAssignDTO {
 
     @NotNull
-    private Long handlerId;
+    private Long investigatorId;
 }

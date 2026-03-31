@@ -2,7 +2,7 @@ package org.example.alfs.entities;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.example.alfs.Role;
+import org.example.alfs.enums.Role;
 
 /*
 Represents a system user.
@@ -20,9 +20,10 @@ public class User {
     @Id
     private Long id;
 
+    @Column(nullable = false, unique = true, length = 100)
     private String username;
 
-    @Column(name = "password_hash", nullable = false, length = 255)
+    @Column(nullable = false, length = 255)
     private String passwordHash;
 
     @Enumerated(EnumType.STRING)

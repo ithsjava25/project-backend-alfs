@@ -1,4 +1,4 @@
-package org.example.alfs;
+package org.example.alfs.enums;
 
 public enum Role {
     REPORTER,

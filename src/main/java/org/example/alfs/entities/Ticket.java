@@ -2,6 +2,7 @@ package org.example.alfs.entities;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.example.alfs.enums.TicketStatus;
 
 
 import java.time.LocalDateTime;
@@ -13,7 +14,7 @@ The ticket can be followed by the anonymous reporter by using the reporterToken.
  */
 
 @Entity
-@Table(name="ticket")
+@Table(name = "ticket")
 @Getter
 @Setter
 @AllArgsConstructor
@@ -24,23 +25,45 @@ public class Ticket {
     @GeneratedValue
     private Long id;
 
+    @Column(nullable = false, length = 255)
     private String title;
 
+    @Lob
+    @Basic(fetch = FetchType.LAZY)
     private String description;
 
-    private String status;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 32)
+    private TicketStatus status;
 
+    @Column(nullable = false, unique = true, length = 128, updatable = false)
     private String reporterToken;
 
     private LocalDateTime createdAt;
+
+    private LocalDateTime updatedAt;
+
     @PrePersist
     public void prePersist() {
         createdAt = LocalDateTime.now();
+        if (status == null) {
+            status = TicketStatus.OPEN;
+        }
     }
 
-    @OneToMany(mappedBy = "ticket")
-    private List<Attachment> attachment;
+    @PreUpdate
+    public void preUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
 
-    @ManyToOne
-    private User assignedHandler;
+    @OneToMany(mappedBy = "ticket", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Attachment> attachments;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "reporter_id", nullable = true)  // null if anonymous
+    private User reporter;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "investigator_id", nullable = true)
+    private User investigator;
 }

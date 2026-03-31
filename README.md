@@ -1,9 +1,9 @@
 # The ALFS Whistleblower Ticket System
 
-### A secure case management system built with Spring Boot for handling whistleblower reports.
+## A secure case management system built with Spring Boot for handling whistleblower reports.
 The system allows anonymous reporting, secure file uploads, role-based access control, and full audit logging.
 
-#### Logs should look like this:
+### Logs should look like this:
 ```text
 action = HANDLER_ASSIGNED
 fieldName = assignedHandler

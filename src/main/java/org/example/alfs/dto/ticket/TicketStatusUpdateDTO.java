@@ -1,6 +1,6 @@
 package org.example.alfs.dto.ticket;
 
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import org.example.alfs.enums.TicketStatus;
 
@@ -12,7 +12,7 @@ import org.example.alfs.enums.TicketStatus;
 @Data
 public class TicketStatusUpdateDTO {
 
-    @NotBlank
+    @NotNull
     private TicketStatus status;
 
 

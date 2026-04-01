@@ -7,7 +7,4 @@ import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<User, Long> {
 
-    // Behövs för Spring Security?
-    Optional<User> findByUsername(String username);
-
 }

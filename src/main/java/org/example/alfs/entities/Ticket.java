@@ -29,9 +29,8 @@ public class Ticket {
     @Column(nullable = false, length = 255)
     private String title;
 
-    @Lob
     @Basic(fetch = FetchType.LAZY)
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition="TEXT")
     private String description;
 
     @Enumerated(EnumType.STRING)

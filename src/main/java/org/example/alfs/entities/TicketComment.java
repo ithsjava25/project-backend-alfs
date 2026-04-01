@@ -22,7 +22,9 @@ public class TicketComment {
     @GeneratedValue
     private Long id;
 
-    @Column(nullable = false, length = 2000)
+    @Lob
+    @Basic(fetch = FetchType.LAZY)
+    @Column(nullable = false)
     private String message;
 
     // Möjlighet att skriva internt meddelande (synligt för utredare/admin, inte för anmälare)

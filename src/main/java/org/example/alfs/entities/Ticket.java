@@ -31,6 +31,7 @@ public class Ticket {
 
     @Lob
     @Basic(fetch = FetchType.LAZY)
+    @Column(nullable = false)
     private String description;
 
     @Enumerated(EnumType.STRING)
@@ -48,7 +49,7 @@ public class Ticket {
     public void prePersist() {
         createdAt = LocalDateTime.now();
         if (status == null) status = TicketStatus.OPEN;
-        if (reporterToken == null) reporterToken = UUID.randomUUID().toString(); // Skapa token för anonyma anmälare?
+        if (reporterToken == null || reporterToken.isBlank()) reporterToken = UUID.randomUUID().toString(); // Skapa token för anonyma anmälare
     }
 
     @PreUpdate
@@ -56,10 +57,10 @@ public class Ticket {
         updatedAt = LocalDateTime.now();
     }
 
-    @OneToMany(mappedBy = "ticket", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "ticket")
     private List<TicketComment> comments;
 
-    @OneToMany(mappedBy = "ticket", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "ticket")
     private List<Attachment> attachments;
 
     @OneToMany(mappedBy = "ticket")

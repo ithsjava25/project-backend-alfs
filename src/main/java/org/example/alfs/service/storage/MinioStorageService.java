@@ -1,5 +1,7 @@
 package org.example.alfs.service.storage;
 
+import io.minio.GetObjectArgs;
+import io.minio.GetObjectResponse;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
 import org.example.alfs.config.S3Properties;
@@ -41,6 +43,15 @@ public class MinioStorageService {
         }
 
         return objectKey;
+    }
+
+    public GetObjectResponse download(String objectKey) throws Exception {
+        return minioClient.getObject(
+                GetObjectArgs.builder()
+                        .bucket(props.getBucket())
+                        .object(objectKey)
+                        .build()
+        );
     }
 
     private String sanitize(String name) {

@@ -4,5 +4,6 @@ public enum AuditAction {
     CREATED,
     UPDATED,
     ASSIGNED,
-    COMMENTED
+    COMMENTED,
+    DOCUMENT_UPLOADED
 }

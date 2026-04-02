@@ -1,0 +1,49 @@
+package org.example.alfs.service.storage;
+
+import io.minio.MinioClient;
+import io.minio.PutObjectArgs;
+import org.example.alfs.config.S3Properties;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.InputStream;
+import java.util.UUID;
+
+@Service
+public class MinioStorageService {
+
+    private final MinioClient minioClient;
+    private final S3Properties props;
+
+    public MinioStorageService(MinioClient minioClient, S3Properties props) {
+        this.minioClient = minioClient;
+        this.props = props;
+    }
+
+    /**
+     * Laddar upp en fil till S3/MinIO och returnerar dess objectKey.
+     */
+    public String upload(MultipartFile file) throws Exception {
+        String fileName = file.getOriginalFilename();
+        if (fileName == null || fileName.isBlank()) {
+            fileName = "file";
+        }
+        String objectKey = UUID.randomUUID() + "/" + sanitize(fileName);
+
+        try (InputStream is = file.getInputStream()) {
+            PutObjectArgs args = PutObjectArgs.builder()
+                    .bucket(props.getBucket())
+                    .object(objectKey)
+                    .contentType(file.getContentType())
+                    .stream(is, file.getSize(), -1)
+                    .build();
+            minioClient.putObject(args);
+        }
+
+        return objectKey;
+    }
+
+    private String sanitize(String name) {
+        return name.replace("\\", "_").replace("/", "_");
+    }
+}

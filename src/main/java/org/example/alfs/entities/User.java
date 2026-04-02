@@ -16,8 +16,8 @@ Users have different roles such as admin or investigator.
 @NoArgsConstructor
 public class User {
 
-    @GeneratedValue
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(nullable = false, unique = true, length = 100)

@@ -20,13 +20,14 @@ Should be written automatically.
 public class AuditLog {
 
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)
     private AuditAction action;
 
+    @Column(nullable = false)
     private String fieldName;
 
     @Column(length = 4000)
@@ -35,6 +36,7 @@ public class AuditLog {
     @Column(length = 4000)
     private String newValue;
 
+    @Column(nullable = false)
     private LocalDateTime createdAt;
 
     @PrePersist

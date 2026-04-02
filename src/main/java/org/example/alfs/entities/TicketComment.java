@@ -19,16 +19,16 @@ The comments are written by a User.
 public class TicketComment {
 
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Basic(fetch = FetchType.LAZY)
-    @Column(nullable = false, columnDefinition="TEXT")
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String message;
 
     // Möjlighet att skriva internt meddelande (synligt för utredare/admin, inte för anmälare)
     @Column(nullable = false)
-    private boolean isInternalNote = false;
+    private boolean internalNote = false;
 
     private LocalDateTime createdAt;
 
@@ -37,9 +37,11 @@ public class TicketComment {
         createdAt = LocalDateTime.now();
     }
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ticket_id", nullable = false)
     private Ticket ticket;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "author_id", nullable = true)
     private User author;
 }

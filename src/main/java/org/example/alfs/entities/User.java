@@ -27,6 +27,14 @@ public class User {
     private String passwordHash;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private Role role;
+
+    @PrePersist
+    public void prePersist() {
+        if (role == null) {
+            role = Role.REPORTER;
+        }
+    }
 
 }

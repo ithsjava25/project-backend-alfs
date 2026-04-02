@@ -2,7 +2,9 @@ package org.example.alfs.enums;
 
 public enum AuditAction {
     CREATED,
-    UPDATED,
+    STATUS_CHANGED,
     ASSIGNED,
-    COMMENTED
+    UNASSIGNED,
+    COMMENT_ADDED,
+    ATTACHMENT_ADDED
 }

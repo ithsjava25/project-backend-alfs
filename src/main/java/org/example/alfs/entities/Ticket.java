@@ -4,7 +4,6 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.example.alfs.enums.TicketStatus;
 
-
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -23,14 +22,14 @@ The ticket can be followed by the anonymous reporter by using the reporterToken.
 public class Ticket {
 
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 255)
+    @Column(nullable = false, length = 255, updatable = false)
     private String title;
 
     @Basic(fetch = FetchType.LAZY)
-    @Column(nullable = false, columnDefinition="TEXT")
+    @Column(nullable = false, columnDefinition = "TEXT", updatable = false)
     private String description;
 
     @Enumerated(EnumType.STRING)
@@ -48,7 +47,8 @@ public class Ticket {
     public void prePersist() {
         createdAt = LocalDateTime.now();
         if (status == null) status = TicketStatus.OPEN;
-        if (reporterToken == null || reporterToken.isBlank()) reporterToken = UUID.randomUUID().toString(); // Skapa token för anonyma anmälare
+        if (reporterToken == null || reporterToken.isBlank())
+            reporterToken = UUID.randomUUID().toString(); // Skapa token för anonyma anmälare
     }
 
     @PreUpdate

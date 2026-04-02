@@ -1,6 +1,7 @@
 package org.example.alfs.dto.ticket;
 
 import lombok.Data;
+import org.example.alfs.enums.TicketStatus;
 
 import java.time.LocalDateTime;
 
@@ -18,7 +19,7 @@ public class TicketViewDTO {
     private Long id;
     private String title;
     private String description;
-    private String status;
+    private TicketStatus status;
     private LocalDateTime createdAt;
 
     private Long assignedInvestigatorId;

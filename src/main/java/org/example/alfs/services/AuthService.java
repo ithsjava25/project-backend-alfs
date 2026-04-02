@@ -1,32 +1,35 @@
 package org.example.alfs.services;
 
 import org.example.alfs.entities.User;
+import org.example.alfs.repositories.UserRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class AuthService {
 
     private final PasswordEncoder passwordEncoder;
+    private final UserRepository userRepository;
 
-    public AuthService(PasswordEncoder passwordEncoder) {
+    public AuthService(PasswordEncoder passwordEncoder, UserRepository userRepository) {
         this.passwordEncoder = passwordEncoder;
+        this.userRepository = userRepository;
     }
 
     public User login(String username, String password) {
 
-
-        // hash av "1234"
-        String hashedPassword = passwordEncoder.encode("1234");
-
-        // fake user until userRepository exist
-        User user = new User();
-        user.setUsername("adam");
-        user.setPasswordHash(hashedPassword);
-        System.out.println(hashedPassword);
-
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.UNAUTHORIZED,
+                        "Invalid username or password"
+                ));
         if (!passwordEncoder.matches(password, user.getPasswordHash())) {
-            throw new RuntimeException("Invalid username or password");
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED,
+                    "Invalid username or password"
+            );
         }
 
         return user;

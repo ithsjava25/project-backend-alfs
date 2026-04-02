@@ -7,6 +7,7 @@ import org.example.alfs.enums.TicketStatus;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 /*
 Representing a whistleblower report.
@@ -28,8 +29,8 @@ public class Ticket {
     @Column(nullable = false, length = 255)
     private String title;
 
-    @Lob
     @Basic(fetch = FetchType.LAZY)
+    @Column(nullable = false, columnDefinition="TEXT")
     private String description;
 
     @Enumerated(EnumType.STRING)
@@ -46,9 +47,8 @@ public class Ticket {
     @PrePersist
     public void prePersist() {
         createdAt = LocalDateTime.now();
-        if (status == null) {
-            status = TicketStatus.OPEN;
-        }
+        if (status == null) status = TicketStatus.OPEN;
+        if (reporterToken == null || reporterToken.isBlank()) reporterToken = UUID.randomUUID().toString(); // Skapa token för anonyma anmälare
     }
 
     @PreUpdate
@@ -56,8 +56,14 @@ public class Ticket {
         updatedAt = LocalDateTime.now();
     }
 
-    @OneToMany(mappedBy = "ticket", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "ticket")
+    private List<TicketComment> comments;
+
+    @OneToMany(mappedBy = "ticket")
     private List<Attachment> attachments;
+
+    @OneToMany(mappedBy = "ticket")
+    private List<AuditLog> auditLogs;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "reporter_id", nullable = true)  // null if anonymous

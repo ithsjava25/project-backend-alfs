@@ -18,6 +18,9 @@ public class AuthService {
         this.userRepository = userRepository;
     }
 
+    /**
+     * Authenticates a user by verifying username and password.
+     */
     public User login(String username, String password) {
 
         User user = userRepository.findByUsername(username)

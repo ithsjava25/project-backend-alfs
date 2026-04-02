@@ -8,8 +8,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.Map;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/auth")
@@ -21,8 +20,11 @@ public class AuthController {
         this.authService = authService;
     }
 
+    /**
+     * Handles user login by validating credentials and returning user details.
+     */
     @PostMapping("/login")
-    public LoginResponseDTO login(@RequestBody LoginRequestDTO request) {
+    public LoginResponseDTO login(@Valid @RequestBody LoginRequestDTO request) {
 
         User user = authService.login(
                 request.getUsername(),

@@ -1,5 +1,7 @@
 package org.example.alfs.controllers;
 
+import org.example.alfs.dto.auth.LoginRequestDTO;
+import org.example.alfs.dto.auth.LoginResponseDTO;
 import org.example.alfs.entities.User;
 import org.example.alfs.services.AuthService;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -20,13 +22,16 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public String login(@RequestBody Map<String, String> body) {
+    public LoginResponseDTO login(@RequestBody LoginRequestDTO request) {
 
-        String username = body.get("username");
-        String password = body.get("password");
+        User user = authService.login(
+                request.getUsername(),
+                request.getPassword()
+        );
 
-        User user = authService.login(username, password);
-
-        return "Login success: " + user.getUsername();
+        return new LoginResponseDTO(
+                user.getUsername(),
+                user.getRole().name()
+        );
     }
 }

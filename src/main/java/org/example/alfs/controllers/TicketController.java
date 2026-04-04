@@ -20,7 +20,7 @@ public class TicketController {
 
 
     public TicketController(TicketService ticketService) {
-        this.ticketService = ticketService();
+        this.ticketService = ticketService;
 
     }
 

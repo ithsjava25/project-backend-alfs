@@ -3,6 +3,7 @@ package org.example.alfs.services;
 import org.example.alfs.dto.ticket.TicketCreateDTO;
 import org.example.alfs.dto.ticket.TicketViewDTO;
 import org.example.alfs.entities.Ticket;
+import org.example.alfs.mapper.TicketMapper;
 import org.example.alfs.repositories.TicketRepository;
 import org.springframework.stereotype.Service;
 
@@ -11,9 +12,11 @@ public class TicketService {
 
 
     private final TicketRepository ticketRepository;
+    private final TicketMapper ticketMapper;
 
-    public TicketService(TicketRepository ticketRepository) {
+    public TicketService(TicketRepository ticketRepository,  TicketMapper ticketMapper) {
         this.ticketRepository = ticketRepository;
+        this.ticketMapper = ticketMapper;
     }
 
     //createNewTicket
@@ -21,8 +24,11 @@ public class TicketService {
 
         Ticket  ticket = new Ticket();
 
+        ticket.setTitle(ticketCreateDTO.getTitle());
+        ticket.setDescription(ticketCreateDTO.getDescription());
+
         Ticket save = ticketRepository.save(ticket);
 
-        return ticketCreateDTO;
+        return ticketMapper.entityToViewDTO(save);
     }
 }

@@ -7,6 +7,8 @@ import org.example.alfs.mapper.TicketMapper;
 import org.example.alfs.repositories.TicketRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.Optional;
+
 @Service
 public class TicketService {
 
@@ -31,4 +33,22 @@ public class TicketService {
 
         return ticketMapper.entityToViewDTO(save);
     }
+
+    // View by token
+    public TicketViewDTO getTicketByToken(String token) {
+
+        Ticket ticket = ticketRepository.findByReporterToken(token).
+                orElseThrow(() -> new RuntimeException("Ticket not found"));
+        return ticketMapper.entityToViewDTO(ticket);
+    }
+
+    //findByReporterId
+
+    //findByInvestigatorId
+
+    //findByStatus
+
+    //findByStatusAndInvestigatorId
+
+    //findAll (pageable)
 }

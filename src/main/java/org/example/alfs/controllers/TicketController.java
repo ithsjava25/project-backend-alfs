@@ -10,6 +10,8 @@ import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
+//TODO: Decide final routes and redirects
+
 @Controller
 @RequestMapping
 public class TicketController {
@@ -45,7 +47,7 @@ public class TicketController {
 
     //view ticket by token
 
-    @GetMapping("/view/{token}")
+    @GetMapping("/view/token/{token}")
     public String viewTicketByToken(@PathVariable String token, Model model) {
 
         TicketViewDTO ticket = ticketService.getTicketByToken(token);
@@ -53,6 +55,17 @@ public class TicketController {
 
         return "view";
     }
+
+    //view ticket by id
+    @GetMapping("/view/id/{id}")
+    public String viewTicketById(@PathVariable Long id, Model model) {
+
+        TicketViewDTO ticket = ticketService.getTicketById(id);
+        model.addAttribute("ticket", ticket);
+
+        return "view";
+    }
+
     //assign ticket
     //update status
     //create comment 

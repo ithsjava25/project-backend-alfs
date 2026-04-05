@@ -42,6 +42,15 @@ public class TicketService {
         return ticketMapper.entityToViewDTO(ticket);
     }
 
+    //findById
+    public TicketViewDTO getTicketById(Long id) {
+
+        Ticket ticket = ticketRepository.findById(id).
+                orElseThrow(() -> new RuntimeException("Ticket not found"));
+        return ticketMapper.entityToViewDTO(ticket);
+
+    }
+
     //findByReporterId
 
     //findByInvestigatorId

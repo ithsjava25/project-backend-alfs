@@ -123,4 +123,25 @@ public class TicketService {
         return ticketMapper.entityToViewDTO(saved);
     }
 
+    @Transactional
+    public TicketViewDTO unassignInvestigator(Long id) {
+        Ticket ticket = ticketRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Ticket not found"));
+
+        // TODO: Check role
+
+        if (ticket.getInvestigator() == null) {
+            throw new IllegalStateException("Ticket does not have an investigator assigned");
+        }
+
+        ticket.setInvestigator(null);
+        ticket.setStatus(TicketStatus.OPEN);
+
+        Ticket saved = ticketRepository.save(ticket);
+
+        // TODO: auditLogService.log()
+
+        return ticketMapper.entityToViewDTO(saved);
+    }
+
 }

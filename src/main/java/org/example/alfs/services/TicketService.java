@@ -142,7 +142,7 @@ public class TicketService {
 //        }
 //        */
 //
-//        Ticket ticket = ticketRepository.findById(id)
+        Ticket ticket = ticketRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Ticket not found"));
 
         if (ticket.getInvestigator() == null) {

@@ -67,6 +67,13 @@ public class TicketService {
 
     @Transactional
     public TicketViewDTO updateTicketStatus(Long id, TicketStatus newStatus) {
+        // TODO: Check role? Is user is Admin or Investigator?
+//        Typ:
+//        if (actor.getRole() != (Role.ADMIN || Role.INVESTIGATOR)) {
+//            throw new AccessDeniedException("Only admins or investigators can update ticket status");
+//        }
+//        */
+
         Ticket ticket = ticketRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Ticket not found"));
 
@@ -74,8 +81,6 @@ public class TicketService {
         if (ticket.getStatus() == newStatus) {
             return ticketMapper.entityToViewDTO(ticket);
         }
-
-        // TODO: Check role
 
         Set<TicketStatus> allowedTransitions = ALLOWED_TRANSITIONS.getOrDefault(ticket.getStatus(), Set.of());
 
@@ -101,6 +106,13 @@ public class TicketService {
 
     @Transactional
     public TicketViewDTO assignInvestigator(Long id, Long investigatorId) {
+        // TODO Check if user is admin
+//        Typ:
+//        if (actor.getRole() != Role.ADMIN) {
+//            throw new AccessDeniedException("Only admins can assign handlers");
+//        }
+//        */
+
         Ticket ticket = ticketRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Ticket not found"));
 
@@ -110,8 +122,6 @@ public class TicketService {
 
         User investigator = userRepository.findById(investigatorId)
                 .orElseThrow(() -> new RuntimeException("Investigator not found"));
-
-        // TODO: Check role
 
         ticket.setInvestigator(investigator);
         ticket.setStatus(TicketStatus.IN_PROGRESS);
@@ -125,10 +135,15 @@ public class TicketService {
 
     @Transactional
     public TicketViewDTO unassignInvestigator(Long id) {
-        Ticket ticket = ticketRepository.findById(id)
+        // TODO: Check if user is admin
+//        Typ:
+//        if (actor.getRole() != Role.ADMIN) {
+//            throw new AccessDeniedException("Only admins can unassign handlers");
+//        }
+//        */
+//
+//        Ticket ticket = ticketRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Ticket not found"));
-
-        // TODO: Check role
 
         if (ticket.getInvestigator() == null) {
             throw new IllegalStateException("Ticket does not have an investigator assigned");

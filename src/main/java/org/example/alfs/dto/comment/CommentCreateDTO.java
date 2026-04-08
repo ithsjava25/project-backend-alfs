@@ -12,4 +12,6 @@ public class CommentCreateDTO {
 
     @NotBlank
     private String message;
+
+    private boolean internalNote = false;
 }

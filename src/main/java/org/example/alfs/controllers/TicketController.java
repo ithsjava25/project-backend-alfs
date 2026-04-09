@@ -34,7 +34,7 @@ public class TicketController {
 
     //TODO REDIRECT, WHERE??
     @PostMapping("/create")
-    public String createNewTicket(@ModelAttribute @Valid TicketCreateDTO ticketCreateDTO,  BindingResult bindingResult) {
+    public String createNewTicket(@ModelAttribute("ticket") @Valid TicketCreateDTO ticketCreateDTO,  BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
             return "create";
         }

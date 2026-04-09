@@ -22,6 +22,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
         http
+                // Only for development (H2 console support)
                 .securityMatcher("/**")
 
                 .csrf(csrf -> csrf.disable())

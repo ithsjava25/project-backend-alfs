@@ -27,8 +27,8 @@ public class TicketService {
         ticket.setTitle(ticketCreateDTO.getTitle());
         ticket.setDescription(ticketCreateDTO.getDescription());
 
-        Ticket save = ticketRepository.save(ticket);
+        Ticket savedTicket = ticketRepository.save(ticket);
 
-        return ticketMapper.entityToViewDTO(save);
+        return ticketMapper.entityToViewDTO(savedTicket);
     }
 }

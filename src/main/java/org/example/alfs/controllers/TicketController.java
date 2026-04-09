@@ -16,8 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 @RequestMapping
 public class TicketController {
 
-    TicketService ticketService;
-
+    private final TicketService ticketService;
 
     public TicketController(TicketService ticketService) {
         this.ticketService = ticketService;
@@ -25,7 +24,6 @@ public class TicketController {
     }
 
     //create ticket
-
     @GetMapping("/create")
     public String createNewTicketForm(Model model) {
         model.addAttribute("ticket", new TicketCreateDTO());
@@ -34,7 +32,7 @@ public class TicketController {
 
     //TODO REDIRECT, WHERE??
     @PostMapping("/create")
-    public String createNewTicket(@ModelAttribute @Valid TicketCreateDTO ticketCreateDTO,  BindingResult bindingResult) {
+    public String createNewTicket(@ModelAttribute("ticket") @Valid TicketCreateDTO ticketCreateDTO,  BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
             return "create";
         }
@@ -42,7 +40,6 @@ public class TicketController {
         ticketService.createNewTicket(ticketCreateDTO);
 
         return "redirect:/home";
-
     }
 
     //view ticket

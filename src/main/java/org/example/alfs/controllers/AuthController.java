@@ -45,10 +45,4 @@ public class AuthController {
         authService.signup(request);
     }
 
-    // This is just for development purposes. Should be deleted later!
-    @GetMapping("/hash")
-    public String hash() {
-        return new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder()
-                .encode("test123");
-    }
 }

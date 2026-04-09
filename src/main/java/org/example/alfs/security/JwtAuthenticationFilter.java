@@ -40,8 +40,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     FilterChain filterChain)
             throws ServletException, IOException {
 
-        System.out.println("FILTER RUNNING: " + request.getRequestURI());
-
         final String authHeader = request.getHeader("Authorization");
 
         // if no token, keep going
@@ -51,21 +49,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         String jwt = authHeader.substring(7);
-        System.out.println("JWT: " + jwt);
         String username;
         try {
             username = jwtService.extractUsername(jwt);
-            System.out.println("USERNAME FROM TOKEN: " + username);
         } catch (Exception e) {
-            System.out.println("TOKEN PARSE FAILED");
             filterChain.doFilter(request, response);
             return;
         }
 
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 
-            User user = userRepository.findByUsername(username)
-                    .orElseThrow(() -> new RuntimeException("User not found"));
+            User user = userRepository.findByUsername(username).orElse(null);
+
+            if (user == null) {
+                filterChain.doFilter(request, response);
+                return;
+            }
 
             // IMPORTANT:
             // We do NOT trust the role stored in the JWT.
@@ -80,10 +79,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                             List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()))
                     );
 
-            System.out.println("USER FROM DB: " + user.getUsername());
-
             boolean valid = jwtService.isTokenValid(jwt, user);
-            System.out.println("TOKEN VALID: " + valid);
 
             if (valid) {
                 UsernamePasswordAuthenticationToken authToken =

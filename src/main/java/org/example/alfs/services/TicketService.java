@@ -6,7 +6,9 @@ import org.example.alfs.entities.Ticket;
 import org.example.alfs.enums.TicketStatus;
 import org.example.alfs.mapper.TicketMapper;
 import org.example.alfs.repositories.TicketRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Optional;
@@ -40,7 +42,7 @@ public class TicketService {
     public TicketViewDTO getTicketByToken(String token) {
 
         Ticket ticket = ticketRepository.findByReporterToken(token).
-                orElseThrow(() -> new RuntimeException("Ticket not found"));
+                orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
         return ticketMapper.entityToViewDTO(ticket);
     }
 
@@ -48,7 +50,7 @@ public class TicketService {
     public TicketViewDTO getTicketById(Long id) {
 
         Ticket ticket = ticketRepository.findById(id).
-                orElseThrow(() -> new RuntimeException("Ticket not found"));
+                orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
         return ticketMapper.entityToViewDTO(ticket);
 
     }

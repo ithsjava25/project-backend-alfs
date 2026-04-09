@@ -38,8 +38,8 @@ public class AuthController {
 
 
     /**
-     * Handles user login by validating credentials and returning user details.
-     */
+    * Handles user signup by validating input and creating a new account.
+    * */
     @PostMapping("/signup")
     public void signup(@Valid @RequestBody SignupRequestDTO request) {
         authService.signup(request);

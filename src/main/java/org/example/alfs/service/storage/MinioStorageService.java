@@ -4,6 +4,7 @@ import io.minio.GetObjectArgs;
 import io.minio.GetObjectResponse;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
+import io.minio.RemoveObjectArgs;
 import org.example.alfs.config.S3Properties;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -48,6 +49,15 @@ public class MinioStorageService {
     public GetObjectResponse download(String objectKey) throws Exception {
         return minioClient.getObject(
                 GetObjectArgs.builder()
+                        .bucket(props.getBucket())
+                        .object(objectKey)
+                        .build()
+        );
+    }
+
+    public void delete(String objectKey) throws Exception {
+        minioClient.removeObject(
+                RemoveObjectArgs.builder()
                         .bucket(props.getBucket())
                         .object(objectKey)
                         .build()

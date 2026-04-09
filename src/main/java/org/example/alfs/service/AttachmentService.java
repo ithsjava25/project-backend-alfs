@@ -35,14 +35,25 @@ public class AttachmentService {
 
         String objectKey = storageService.upload(file);
 
-        Attachment att = new Attachment();
-        att.setFileName(file.getOriginalFilename() != null ? file.getOriginalFilename() : "file");
-        att.setS3Key(objectKey);
-        att.setTicket(ticket);
-        attachmentRepository.save(att);
+        try {
+            Attachment att = new Attachment();
+            att.setFileName(file.getOriginalFilename() != null ? file.getOriginalFilename() : "file");
+            att.setS3Key(objectKey);
+            att.setTicket(ticket);
+            attachmentRepository.save(att);
 
-        auditService.log(AuditAction.DOCUMENT_UPLOADED, "attachments", null, "objectKey:" + objectKey, ticket);
+            auditService.log(AuditAction.DOCUMENT_UPLOADED, "attachments", null, "objectKey:" + objectKey, ticket);
 
-        return att;
+            return att;
+        } catch (Exception e) {
+            // Compensation: delete uploaded object if DB operations fail
+            try {
+                storageService.delete(objectKey);
+            } catch (Exception deleteEx) {
+                // Log but don't mask original exception
+                e.addSuppressed(deleteEx);
+            }
+            throw e;
+        }
     }
 }

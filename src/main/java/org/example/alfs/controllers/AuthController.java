@@ -22,7 +22,7 @@ public class AuthController {
     }
 
     /**
-     * Handles user login by validating credentials and returning user details.
+     * Authenticates a user by validating credentials and returns a JWT token.
      */
     @PostMapping("/login")
     public LoginResponseDTO login(@Valid @RequestBody LoginRequestDTO request) {

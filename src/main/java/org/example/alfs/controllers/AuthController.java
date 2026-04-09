@@ -2,12 +2,11 @@ package org.example.alfs.controllers;
 
 import org.example.alfs.dto.auth.LoginRequestDTO;
 import org.example.alfs.dto.auth.LoginResponseDTO;
+import org.example.alfs.dto.auth.SignupRequestDTO;
 import org.example.alfs.entities.User;
+import org.example.alfs.security.JwtService;
 import org.example.alfs.services.AuthService;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 
 @RestController
@@ -15,9 +14,11 @@ import jakarta.validation.Valid;
 public class AuthController {
 
     private final AuthService authService;
+    private final JwtService jwtService;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, JwtService jwtService) {
         this.authService = authService;
+        this.jwtService = jwtService;
     }
 
     /**
@@ -31,9 +32,23 @@ public class AuthController {
                 request.getPassword()
         );
 
-        return new LoginResponseDTO(
-                user.getUsername(),
-                user.getRole().name()
-        );
+        String token = jwtService.generateToken(user);
+        return new LoginResponseDTO(token);
+    }
+
+
+    /**
+     * Handles user login by validating credentials and returning user details.
+     */
+    @PostMapping("/signup")
+    public void signup(@Valid @RequestBody SignupRequestDTO request) {
+        authService.signup(request);
+    }
+
+    // This is just for development purposes. Should be deleted later!
+    @GetMapping("/hash")
+    public String hash() {
+        return new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder()
+                .encode("test123");
     }
 }

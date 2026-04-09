@@ -16,9 +16,13 @@ public class SecurityUtils {
 
     public User getCurrentUser() {
 
-        String username = SecurityContextHolder.getContext()
-                .getAuthentication()
-                .getName();
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new RuntimeException("No authenticated user in security context");
+        }
+
+        String username = authentication.getName();
 
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Authenticated user not found in database"));

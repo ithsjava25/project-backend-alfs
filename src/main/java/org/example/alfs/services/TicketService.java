@@ -3,10 +3,12 @@ package org.example.alfs.services;
 import org.example.alfs.dto.ticket.TicketCreateDTO;
 import org.example.alfs.dto.ticket.TicketViewDTO;
 import org.example.alfs.entities.Ticket;
+import org.example.alfs.enums.TicketStatus;
 import org.example.alfs.mapper.TicketMapper;
 import org.example.alfs.repositories.TicketRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -52,12 +54,40 @@ public class TicketService {
     }
 
     //findByReporterId
+    public List<TicketViewDTO> getTicketsByReporterId(Long reporterId) {
+        return ticketRepository.findByReporterId(reporterId)
+                .stream()
+                .map(ticketMapper::entityToViewDTO)
+                .toList();
+    }
 
     //findByInvestigatorId
+        public List<TicketViewDTO> getTicketsByInvestigatorId(Long investigatorId){
+            return ticketRepository.findByInvestigatorId(investigatorId)
+                    .stream()
+                    .map(ticketMapper::entityToViewDTO)
+                    .toList();
+        }
 
     //findByStatus
+        public List<TicketViewDTO> getTicketsByStatus(TicketStatus status) {
+            return ticketRepository.findByStatus(status)
+                    .stream()
+                    .map(ticketMapper::entityToViewDTO)
+                    .toList();
+        }
 
     //findByStatusAndInvestigatorId
+        public List<TicketViewDTO> getTicketsByStatusAndInvestigator(
+                TicketStatus status,
+                Long investigatorId) {
+
+            return ticketRepository
+                    .findByStatusAndInvestigatorId(status, investigatorId)
+                    .stream()
+                    .map(ticketMapper::entityToViewDTO)
+                    .toList();
+        }
 
     //findAll (pageable)
 }

@@ -67,8 +67,20 @@ public class TicketController {
     }
 
     //assign ticket
+    // TODO implement DTO + service
+    @PostMapping("/{id}/assign")
+    public String assignTicket(@PathVariable Long id) {
+        return "redirect:/tickets/" + id;
+    }
+
     //update status
-    //create comment 
+    // TODO implement DTO + service
+    @PostMapping("/{id}/status")
+    public String updateStatus(@PathVariable Long id) {
+        return "redirect:/tickets/" + id;
+    }
+
+    //create comment
     //View comment
     //upload attachment
 }

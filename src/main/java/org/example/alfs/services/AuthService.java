@@ -26,16 +26,11 @@ public class AuthService {
     public User login(String username, String password) {
 
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Bad credentials"));
 
-        System.out.println("INPUT PASSWORD: " + password);
-        System.out.println("DB HASH: " + user.getPasswordHash());
 
-        boolean matches = passwordEncoder.matches(password, user.getPasswordHash());
 
-        System.out.println("MATCH RESULT: " + matches);
-
-        if (!matches) {
+        if (!passwordEncoder.matches(password, user.getPasswordHash())) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Bad credentials");
         }
 

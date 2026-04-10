@@ -105,7 +105,7 @@ public class TicketService {
 //        */
 
         Ticket ticket = ticketRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Ticket not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
 
         TicketStatus oldStatus = ticket.getStatus();
 
@@ -149,7 +149,7 @@ public class TicketService {
 //        */
 
         Ticket ticket = ticketRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Ticket not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
 
         if (ticket.getInvestigator() != null) {
             throw new IllegalStateException("Ticket already has an investigator assigned");
@@ -162,7 +162,7 @@ public class TicketService {
 //        }
 
         User investigator = userRepository.findById(investigatorId)
-                .orElseThrow(() -> new RuntimeException("Investigator not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Investigator not found"));
 
         ticket.setInvestigator(investigator);
         ticket.setStatus(TicketStatus.IN_PROGRESS);
@@ -187,7 +187,7 @@ public class TicketService {
 //        */
 //
         Ticket ticket = ticketRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Ticket not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
 
         if (ticket.getInvestigator() == null) {
             throw new IllegalStateException("Ticket does not have an investigator assigned");

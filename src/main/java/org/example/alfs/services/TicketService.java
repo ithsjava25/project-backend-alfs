@@ -118,7 +118,7 @@ public class TicketService {
         Set<TicketStatus> allowedTransitions = ALLOWED_TRANSITIONS.getOrDefault(ticket.getStatus(), Set.of());
 
         if (!allowedTransitions.contains(newStatus)) {
-            throw new IllegalStateException("Invalid ticket status transition: Cannot transition from " + ticket.getStatus() + " to " + newStatus);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid ticket status transition: Cannot transition from " + ticket.getStatus() + " to " + newStatus);
         }
 
         if (newStatus == TicketStatus.IN_PROGRESS && ticket.getInvestigator() == null) {
@@ -157,18 +157,18 @@ public class TicketService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
 
         if (ticket.getInvestigator() != null) {
-            throw new IllegalStateException("Ticket already has an investigator assigned");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, ("Ticket already has an investigator assigned"));
         }
 
         User investigator = userRepository.findById(investigatorId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Investigator not found"));
 
         if (investigator.getRole() != Role.INVESTIGATOR) {
-            throw new IllegalArgumentException("User is not an investigator");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ("User is not an investigator"));
         }
 
         if (ticket.getStatus() != TicketStatus.OPEN) {
-            throw new IllegalStateException("Can only assign investigator to an OPEN ticket");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ("Can only assign investigator to an OPEN ticket"));
         }
 
         ticket.setInvestigator(investigator);
@@ -197,11 +197,11 @@ public class TicketService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
 
         if (ticket.getInvestigator() == null) {
-            throw new IllegalStateException("Ticket does not have an investigator assigned");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ("Ticket does not have an investigator assigned"));
         }
 
         if (ticket.getStatus() != TicketStatus.IN_PROGRESS) {
-            throw new IllegalStateException("Can only unassign investigator from an IN_PROGRESS ticket");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ("Can only unassign investigator from an IN_PROGRESS ticket"));
         }
 
         ticket.setInvestigator(null);

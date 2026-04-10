@@ -6,5 +6,5 @@ public enum AuditAction {
     ASSIGNED,
     UNASSIGNED,
     COMMENT_ADDED,
-    DOCUMENT_UPLOADED
+    ATTACHMENT_ADDED
 }

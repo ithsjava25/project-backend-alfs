@@ -4,6 +4,7 @@ import org.example.alfs.dto.ticket.TicketCreateDTO;
 import org.example.alfs.dto.ticket.TicketViewDTO;
 import org.example.alfs.entities.Ticket;
 import org.example.alfs.entities.User;
+import org.example.alfs.enums.Role;
 import org.example.alfs.enums.TicketStatus;
 import org.example.alfs.mapper.TicketMapper;
 import org.example.alfs.repositories.TicketRepository;
@@ -145,7 +146,7 @@ public class TicketService {
 
     @Transactional
     public TicketViewDTO assignInvestigator(Long id, Long investigatorId) {
-        // TODO Check if user is admin
+        // TODO Check if user is admin?
 //        Typ/Placeholder:
 //        if (user.getRole() != Role.ADMIN) {
 //            throw new AccessDeniedException("Only admins can assign handlers");
@@ -159,14 +160,16 @@ public class TicketService {
             throw new IllegalStateException("Ticket already has an investigator assigned");
         }
 
-        // TODO: Check if user is investigator
-        // Typ/Placeholder:
-//        if (user.getRole() != Role.INVESTIGATOR) {
-//            throw new IllegalArgumentException("User is not an investigator");
-//        }
-
         User investigator = userRepository.findById(investigatorId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Investigator not found"));
+
+        if (investigator.getRole() != Role.INVESTIGATOR) {
+            throw new IllegalArgumentException("User is not an investigator");
+        }
+
+        if (ticket.getStatus() != TicketStatus.OPEN) {
+            throw new IllegalStateException("Can only assign investigator to an OPEN ticket");
+        }
 
         ticket.setInvestigator(investigator);
         ticket.setStatus(TicketStatus.IN_PROGRESS);
@@ -195,6 +198,10 @@ public class TicketService {
 
         if (ticket.getInvestigator() == null) {
             throw new IllegalStateException("Ticket does not have an investigator assigned");
+        }
+
+        if (ticket.getStatus() != TicketStatus.IN_PROGRESS) {
+            throw new IllegalStateException("Can only unassign investigator from an IN_PROGRESS ticket");
         }
 
         ticket.setInvestigator(null);

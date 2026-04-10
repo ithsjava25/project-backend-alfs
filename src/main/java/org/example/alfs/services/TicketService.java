@@ -3,9 +3,11 @@ package org.example.alfs.services;
 import org.example.alfs.dto.ticket.TicketCreateDTO;
 import org.example.alfs.dto.ticket.TicketViewDTO;
 import org.example.alfs.entities.Ticket;
+import org.example.alfs.entities.User;
 import org.example.alfs.enums.TicketStatus;
 import org.example.alfs.mapper.TicketMapper;
 import org.example.alfs.repositories.TicketRepository;
+import org.example.alfs.repositories.UserRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,10 +22,12 @@ public class TicketService {
 
     private final TicketRepository ticketRepository;
     private final TicketMapper ticketMapper;
+    private final UserRepository userRepository;
 
-    public TicketService(TicketRepository ticketRepository, TicketMapper ticketMapper) {
+    public TicketService(TicketRepository ticketRepository, TicketMapper ticketMapper, UserRepository userRepository) {
         this.ticketRepository = ticketRepository;
         this.ticketMapper = ticketMapper;
+        this.userRepository = userRepository;
     }
 
     //createNewTicket
@@ -110,11 +114,11 @@ public class TicketService {
         }
 
         ticket.setStatus(newStatus);
-        Ticket saved = ticketRepository.save(ticket);
+        Ticket savedTicket = ticketRepository.save(ticket);
 
         // TODO: Audit log(-service?), auditLogService.log()
 
-        return ticketMapper.entityToViewDTO(saved);
+        return ticketMapper.entityToViewDTO(savedTicket);
     }
 
     // Bestäm vilka övergångar/transitions som är tillåtna
@@ -124,4 +128,28 @@ public class TicketService {
             TicketStatus.RESOLVED, Set.of(TicketStatus.CLOSED, TicketStatus.IN_PROGRESS),
             TicketStatus.CLOSED, Set.of()
     );
+
+    @Transactional
+    public TicketViewDTO assignInvestigator(Long id, Long investigatorId) {
+        Ticket ticket = ticketRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Ticket not found"));
+
+        if (ticket.getInvestigator() != null) {
+            throw new IllegalStateException("Ticket already has an investigator assigned");
+        }
+
+        User investigator = userRepository.findById(investigatorId)
+                .orElseThrow(() -> new RuntimeException("Investigator not found"));
+
+        // TODO: Check role
+
+        ticket.setInvestigator(investigator);
+        ticket.setStatus(TicketStatus.IN_PROGRESS);
+
+        Ticket savedTicket = ticketRepository.save(ticket);
+
+        // TODO: auditLogService.log()
+
+        return ticketMapper.entityToViewDTO(savedTicket);
+    }
 }

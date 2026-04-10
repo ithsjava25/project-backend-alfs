@@ -61,7 +61,7 @@ public class TicketCommentService {
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
         }
 
-        if (actor.getRole() == Role.REPORTER) {
+        if (actor == null || actor.getRole() == Role.REPORTER) {
             return all.stream()
                     .filter(comment -> !comment.isInternalNote())
                     .map(ticketCommentMapper::entityToViewDTO)

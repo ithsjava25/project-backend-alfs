@@ -99,7 +99,7 @@ public class TicketService {
     public TicketViewDTO updateTicketStatus(Long id, TicketStatus newStatus) {
         // TODO: Check role? Is user is Admin or Investigator?
 //        Typ/Placeholder:
-//        if (user.getRole() != (Role.ADMIN || Role.INVESTIGATOR)) {
+//        if (user.getRole() != Role.ADMIN && user.getRole() != Role.INVESTIGATOR) {
 //            throw new AccessDeniedException("Only admins or investigators can update ticket status");
 //        }
 //        */
@@ -107,8 +107,10 @@ public class TicketService {
         Ticket ticket = ticketRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Ticket not found"));
 
+        TicketStatus oldStatus = ticket.getStatus();
+
         // No-op check
-        if (ticket.getStatus() == newStatus) {
+        if (oldStatus == newStatus) {
             return ticketMapper.entityToViewDTO(ticket);
         }
 

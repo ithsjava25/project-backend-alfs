@@ -98,8 +98,8 @@ public class TicketService {
     @Transactional
     public TicketViewDTO updateTicketStatus(Long id, TicketStatus newStatus) {
         // TODO: Check role? Is user is Admin or Investigator?
-//        Typ:
-//        if (actor.getRole() != (Role.ADMIN || Role.INVESTIGATOR)) {
+//        Typ/Placeholder:
+//        if (user.getRole() != (Role.ADMIN || Role.INVESTIGATOR)) {
 //            throw new AccessDeniedException("Only admins or investigators can update ticket status");
 //        }
 //        */
@@ -122,6 +122,9 @@ public class TicketService {
         Ticket savedTicket = ticketRepository.save(ticket);
 
         // TODO: Audit log(-service?), auditLogService.log()
+//        Typ/Placeholder:
+//        auditLogService.log(ticket.getId(), user, "STATUS_CHANGED",
+//                "Status changed from " + oldStatus + " to " + newStatus);
 
         return ticketMapper.entityToViewDTO(savedTicket);
     }
@@ -137,8 +140,8 @@ public class TicketService {
     @Transactional
     public TicketViewDTO assignInvestigator(Long id, Long investigatorId) {
         // TODO Check if user is admin
-//        Typ:
-//        if (actor.getRole() != Role.ADMIN) {
+//        Typ/Placeholder:
+//        if (user.getRole() != Role.ADMIN) {
 //            throw new AccessDeniedException("Only admins can assign handlers");
 //        }
 //        */
@@ -150,6 +153,12 @@ public class TicketService {
             throw new IllegalStateException("Ticket already has an investigator assigned");
         }
 
+        // TODO: Check if user is investigator
+        // Typ/Placeholder:
+//        if (user.getRole() != Role.INVESTIGATOR) {
+//            throw new IllegalArgumentException("User is not an investigator");
+//        }
+
         User investigator = userRepository.findById(investigatorId)
                 .orElseThrow(() -> new RuntimeException("Investigator not found"));
 
@@ -159,6 +168,9 @@ public class TicketService {
         Ticket savedTicket = ticketRepository.save(ticket);
 
         // TODO: auditLogService.log()
+//        Typ/Placeholder:
+//        auditLogService.log(ticket.getId(), user, "ASSIGNED",
+//                "Ticket assigned to " + investigatorId);
 
         return ticketMapper.entityToViewDTO(savedTicket);
     }
@@ -166,7 +178,7 @@ public class TicketService {
     @Transactional
     public TicketViewDTO unassignInvestigator(Long id) {
         // TODO: Check if user is admin
-//        Typ:
+//        Typ/Placeholder:
 //        if (actor.getRole() != Role.ADMIN) {
 //            throw new AccessDeniedException("Only admins can unassign handlers");
 //        }
@@ -185,6 +197,9 @@ public class TicketService {
         Ticket savedTicket = ticketRepository.save(ticket);
 
         // TODO: auditLogService.log()
+//        Typ/Placeholder:
+//        auditLogService.log(ticket.getId(), user, "UNASSIGNED",
+//                "Ticket unassigned from " + investigatorId);
 
         return ticketMapper.entityToViewDTO(savedTicket);
     }

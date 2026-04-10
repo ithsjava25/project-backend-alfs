@@ -52,9 +52,9 @@ public class TicketCommentService {
         return ticketCommentMapper.entityToViewDTO(savedComment);
     }
 
+    @Transactional(readOnly = true)
     public List<CommentViewDTO> getComments(Long ticketId, User actor) {
-        List<TicketComment> all = ticketCommentRepository
-                .findByTicketIdOrderByCreatedAtAsc(ticketId);
+        List<TicketComment> all = ticketCommentRepository.findByTicketIdOrderByCreatedAtAsc(ticketId);
 
         if (all.isEmpty()) {
             ticketRepository.findById(ticketId)

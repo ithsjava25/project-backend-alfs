@@ -122,7 +122,7 @@ public class TicketService {
         }
 
         if (newStatus == TicketStatus.IN_PROGRESS && ticket.getInvestigator() == null) {
-            throw new IllegalStateException("Cannot move ticket to IN_PROGRESS without an assigned investigator");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot move ticket to IN_PROGRESS without an assigned investigator");
         }
 
         ticket.setStatus(newStatus);

@@ -9,8 +9,10 @@ import org.example.alfs.enums.Role;
 import org.example.alfs.mapper.TicketCommentMapper;
 import org.example.alfs.repositories.TicketCommentRepository;
 import org.example.alfs.repositories.TicketRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -22,8 +24,8 @@ public class TicketCommentService {
     private final TicketCommentMapper ticketCommentMapper;
 
     public TicketCommentService(TicketRepository ticketRepository,
-                          TicketCommentRepository ticketCommentRepository,
-                          TicketCommentMapper ticketCommentMapper) {
+                                TicketCommentRepository ticketCommentRepository,
+                                TicketCommentMapper ticketCommentMapper) {
         this.ticketRepository = ticketRepository;
         this.ticketCommentRepository = ticketCommentRepository;
         this.ticketCommentMapper = ticketCommentMapper;
@@ -38,7 +40,12 @@ public class TicketCommentService {
         comment.setTicket(ticket);
         comment.setAuthor(author);
         comment.setMessage(dto.getMessage());
-        comment.setInternalNote(dto.isInternalNote());
+
+        boolean internalNote = dto.isInternalNote();
+        if (internalNote && (author == null || (author.getRole() != Role.ADMIN && author.getRole() != Role.INVESTIGATOR))) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only investigators/admins can create internal notes");
+        }
+        comment.setInternalNote(internalNote);
 
         TicketComment savedComment = ticketCommentRepository.save(comment);
 

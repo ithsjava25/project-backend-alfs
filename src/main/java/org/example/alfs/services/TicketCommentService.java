@@ -34,7 +34,7 @@ public class TicketCommentService {
     @Transactional
     public CommentViewDTO addComment(Long ticketId, CommentCreateDTO dto, User author) {
         Ticket ticket = ticketRepository.findById(ticketId)
-                .orElseThrow(() -> new RuntimeException("Ticket not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
 
         TicketComment comment = new TicketComment();
         comment.setTicket(ticket);
@@ -58,7 +58,7 @@ public class TicketCommentService {
 
         if (all.isEmpty()) {
             ticketRepository.findById(ticketId)
-                    .orElseThrow(() -> new RuntimeException("Ticket not found"));
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
         }
 
         if (actor.getRole() == Role.REPORTER) {

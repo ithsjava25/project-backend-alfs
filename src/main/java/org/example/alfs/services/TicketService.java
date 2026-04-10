@@ -160,6 +160,10 @@ public class TicketService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, ("Ticket already has an investigator assigned"));
         }
 
+        if (ticket.getStatus() != TicketStatus.OPEN) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ("Can only assign investigator to an  OPEN ticket, current status: " + ticket.getStatus()));
+        }
+
         User investigator = userRepository.findById(investigatorId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Investigator not found"));
 
@@ -167,15 +171,9 @@ public class TicketService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ("User is not an investigator"));
         }
 
-        if (ticket.getStatus() != TicketStatus.OPEN) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ("Can only assign investigator to an OPEN ticket"));
-        }
-
         ticket.setInvestigator(investigator);
         ticket.setStatus(TicketStatus.IN_PROGRESS);
-
         Ticket savedTicket = ticketRepository.save(ticket);
-
         // TODO: auditLogService.log()
 //        Typ/Placeholder:
 //        auditLogService.log(ticket.getId(), user, "ASSIGNED",
@@ -186,13 +184,13 @@ public class TicketService {
 
     @Transactional
     public TicketViewDTO unassignInvestigator(Long id) {
-        // TODO: Check if user is admin
+        // TODO: Check if user is admin?
 //        Typ/Placeholder:
 //        if (actor.getRole() != Role.ADMIN) {
 //            throw new AccessDeniedException("Only admins can unassign handlers");
 //        }
 //        */
-//
+
         Ticket ticket = ticketRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
 
@@ -201,14 +199,12 @@ public class TicketService {
         }
 
         if (ticket.getStatus() != TicketStatus.IN_PROGRESS) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ("Can only unassign investigator from an IN_PROGRESS ticket"));
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ("Can only unassign investigator from an IN_PROGRESS ticket, current status: " + ticket.getStatus()));
         }
 
         ticket.setInvestigator(null);
         ticket.setStatus(TicketStatus.OPEN);
-
         Ticket savedTicket = ticketRepository.save(ticket);
-
         // TODO: auditLogService.log()
 //        Typ/Placeholder:
 //        auditLogService.log(ticket.getId(), user, "UNASSIGNED",

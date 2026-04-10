@@ -120,6 +120,10 @@ public class TicketService {
             throw new IllegalStateException("Invalid ticket status transition: Cannot transition from " + ticket.getStatus() + " to " + newStatus);
         }
 
+        if (newStatus == TicketStatus.IN_PROGRESS && ticket.getInvestigator() == null) {
+            throw new IllegalStateException("Cannot move ticket to IN_PROGRESS without an assigned investigator");
+        }
+
         ticket.setStatus(newStatus);
         Ticket savedTicket = ticketRepository.save(ticket);
 

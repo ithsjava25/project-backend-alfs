@@ -76,7 +76,7 @@ public class TicketController {
     @PostMapping("/{id}/assign")
     public String assignTicket(@PathVariable Long id, @ModelAttribute TicketAssignDTO dto) {
 
-        ticketService.assignTicket(id, dto.getInvestigatorId());
+        ticketService.assignInvestigator(id, dto.getInvestigatorId());
 
         return "redirect:/view/id/" + id;
     }
@@ -86,7 +86,7 @@ public class TicketController {
     @PreAuthorize("hasAnyRole('ADMIN','INVESTIGATOR')")
     public String updateStatus(@PathVariable Long id, @ModelAttribute TicketStatusUpdateDTO dto) {
 
-        ticketService.updateStatus(id, dto.getStatus());
+        ticketService.updateTicketStatus(id, dto.getStatus());
 
         return "redirect:/view/id/" + id;
     }

@@ -159,11 +159,22 @@ public class TicketService {
         try {
             return securityUtils.getCurrentUser();
         } catch (RuntimeException ex) {
-            throw new ResponseStatusException(
-                    HttpStatus.UNAUTHORIZED,
-                    "Authentication required",
-                    ex
-            );
+
+            String message = ex.getMessage();
+
+            boolean authFailure =
+                    "No authenticated user in security context".equals(message) ||
+                            "Authenticated user not found in database".equals(message);
+
+            if (authFailure) {
+                throw new ResponseStatusException(
+                        HttpStatus.UNAUTHORIZED,
+                        "Authentication required",
+                        ex
+                );
+            }
+
+            throw ex;
         }
     }
 

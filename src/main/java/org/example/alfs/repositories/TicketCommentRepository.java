@@ -11,5 +11,5 @@ public interface TicketCommentRepository extends JpaRepository<TicketComment, Lo
     List<TicketComment> findByTicketIdOrderByCreatedAtAsc(Long ticketId);
 
     // Ladda interna meddelanden för utredare/admins, äldst först
-    List<TicketComment> findByTicketIdAndIsInternalNoteOrderByCreatedAtAsc(Long ticketId, boolean isInternalNote);
+    List<TicketComment> findByTicketIdAndInternalNoteOrderByCreatedAtAsc(Long ticketId, boolean isInternalNote);
 }

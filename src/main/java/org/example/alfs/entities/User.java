@@ -16,8 +16,8 @@ Users have different roles such as admin or investigator.
 @NoArgsConstructor
 public class User {
 
-    @GeneratedValue
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(nullable = false, unique = true, length = 100)
@@ -27,6 +27,14 @@ public class User {
     private String passwordHash;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private Role role;
+
+    @PrePersist
+    public void prePersist() {
+        if (role == null) {
+            role = Role.REPORTER;
+        }
+    }
 
 }

@@ -10,6 +10,7 @@ Represent a file uploaded with Ticket.
 Stores metadata about the file and the file reference s3key.
  */
 @Entity
+@Table(name = "attachment")
 @Getter
 @Setter
 @AllArgsConstructor
@@ -17,7 +18,7 @@ Stores metadata about the file and the file reference s3key.
 public class Attachment {
 
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(nullable = false)
@@ -33,6 +34,7 @@ public class Attachment {
         uploadedAt = LocalDateTime.now();
     }
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ticket_id", nullable = false)
     private Ticket ticket;
 }

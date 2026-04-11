@@ -74,7 +74,7 @@ public class TicketController {
     //assign ticket
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/{id}/assign")
-    public String assignTicket(@PathVariable Long id, @ModelAttribute TicketAssignDTO dto) {
+    public String assignTicket(@PathVariable Long id, @Valid @ModelAttribute TicketAssignDTO dto) {
 
         ticketService.assignInvestigator(id, dto.getInvestigatorId());
 
@@ -84,7 +84,7 @@ public class TicketController {
     //update status
     @PostMapping("/{id}/status")
     @PreAuthorize("hasAnyRole('ADMIN','INVESTIGATOR')")
-    public String updateStatus(@PathVariable Long id, @ModelAttribute TicketStatusUpdateDTO dto) {
+    public String updateStatus(@PathVariable Long id, @Valid @ModelAttribute TicketStatusUpdateDTO dto) {
 
         ticketService.updateTicketStatus(id, dto.getStatus());
 

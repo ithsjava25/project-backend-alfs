@@ -9,6 +9,7 @@ import org.example.alfs.enums.TicketStatus;
 import org.example.alfs.mapper.TicketMapper;
 import org.example.alfs.repositories.TicketRepository;
 import org.example.alfs.repositories.UserRepository;
+import org.example.alfs.security.SecurityUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,20 +24,29 @@ public class TicketService {
 
     private final TicketRepository ticketRepository;
     private final TicketMapper ticketMapper;
+    private final SecurityUtils securityUtils;
     private final UserRepository userRepository;
 
-    public TicketService(TicketRepository ticketRepository, TicketMapper ticketMapper, UserRepository userRepository) {
+    public TicketService(TicketRepository ticketRepository,
+                         TicketMapper ticketMapper,
+                         SecurityUtils securityUtils,
+                         UserRepository userRepository) {
         this.ticketRepository = ticketRepository;
         this.ticketMapper = ticketMapper;
+        this.securityUtils = securityUtils;
         this.userRepository = userRepository;
     }
 
     //createNewTicket
     public TicketViewDTO createNewTicket(TicketCreateDTO ticketCreateDTO) {
+
         Ticket ticket = new Ticket();
 
         ticket.setTitle(ticketCreateDTO.getTitle());
         ticket.setDescription(ticketCreateDTO.getDescription());
+
+        User user = requireCurrentUser();
+        ticket.setReporter(user);
 
         Ticket savedTicket = ticketRepository.save(ticket);
 
@@ -45,172 +55,265 @@ public class TicketService {
 
     // View by token
     public TicketViewDTO getTicketByToken(String token) {
-        Ticket ticket = ticketRepository.findByReporterToken(token).
-                orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
+        Ticket ticket = ticketRepository.findByReporterToken(token)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
 
         return ticketMapper.entityToViewDTO(ticket);
     }
 
     //findById
     public TicketViewDTO getTicketById(Long id) {
-        Ticket ticket = ticketRepository.findById(id).
-                orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
+        Ticket ticket = ticketRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
+
+        checkAccess(ticket);
 
         return ticketMapper.entityToViewDTO(ticket);
     }
 
-    //findByReporterId
-    public List<TicketViewDTO> getTicketsByReporterId(Long reporterId) {
-        return ticketRepository.findByReporterId(reporterId)
+    // Get all tickets for a reporter
+    public List<TicketViewDTO> getMyTickets() {
+        User user = requireCurrentUser();
+
+        return ticketRepository.findByReporterId(user.getId())
                 .stream()
                 .map(ticketMapper::entityToViewDTO)
                 .toList();
     }
 
-    //findByInvestigatorId
-    public List<TicketViewDTO> getTicketsByInvestigatorId(Long investigatorId) {
-        return ticketRepository.findByInvestigatorId(investigatorId)
+    // Get all tickets assigned to me
+    public List<TicketViewDTO> getMyAssignedTickets() {
+        User user = requireCurrentUser();
+
+        return ticketRepository.findByInvestigatorId(user.getId())
                 .stream()
                 .map(ticketMapper::entityToViewDTO)
                 .toList();
     }
 
-    //findByStatus
+    // ----------------- filters -----------------
+
     public List<TicketViewDTO> getTicketsByStatus(TicketStatus status) {
+        User user = requireCurrentUser();
+        requireAdmin(user);
+
         return ticketRepository.findByStatus(status)
                 .stream()
                 .map(ticketMapper::entityToViewDTO)
                 .toList();
     }
 
-    //findByStatusAndInvestigatorId
-    public List<TicketViewDTO> getTicketsByStatusAndInvestigator(
-            TicketStatus status,
-            Long investigatorId) {
-        return ticketRepository
-                .findByStatusAndInvestigatorId(status, investigatorId)
-                .stream()
-                .map(ticketMapper::entityToViewDTO)
-                .toList();
+    public List<TicketViewDTO> getTicketsByStatusAndInvestigator(TicketStatus status, Long investigatorId) {
+        User user = requireCurrentUser();
+
+        if (user.getRole() == Role.ADMIN) {
+            return ticketRepository.findByStatusAndInvestigatorId(status, investigatorId)
+                    .stream()
+                    .map(ticketMapper::entityToViewDTO)
+                    .toList();
+        }
+
+        if (user.getRole() == Role.INVESTIGATOR &&
+                user.getId().equals(investigatorId)) {
+
+            return ticketRepository.findByStatusAndInvestigatorId(status, investigatorId)
+                    .stream()
+                    .map(ticketMapper::entityToViewDTO)
+                    .toList();
+        }
+
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
     }
 
-    //findAll (pageable)
+    // ----------------- helpers -----------------
 
+    private void checkAccess(Ticket ticket) {
+        User user = requireCurrentUser();
+
+        if (user.getRole() == Role.ADMIN) return;
+
+        if (user.getRole() == Role.INVESTIGATOR) {
+            if (ticket.getInvestigator() != null &&
+                    ticket.getInvestigator().getId().equals(user.getId())) {
+                return;
+            }
+        }
+
+        if (user.getRole() == Role.REPORTER) {
+            if (ticket.getReporter() != null &&
+                    ticket.getReporter().getId().equals(user.getId())) {
+                return;
+            }
+        }
+
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
+    }
+
+    private void requireAdmin(User user) {
+        if (user.getRole() != Role.ADMIN) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
+        }
+    }
+
+    private User requireCurrentUser() {
+        try {
+            return securityUtils.getCurrentUser();
+        } catch (RuntimeException ex) {
+
+            String message = ex.getMessage();
+
+            boolean authFailure =
+                    "No authenticated user in security context".equals(message) ||
+                            "Authenticated user not found in database".equals(message);
+
+            if (authFailure) {
+                throw new ResponseStatusException(
+                        HttpStatus.UNAUTHORIZED,
+                        "Authentication required",
+                        ex
+                );
+            }
+
+            throw ex;
+        }
+    }
+
+
+    // ----------------- status logic -----------------
     @Transactional
     public TicketViewDTO updateTicketStatus(Long id, TicketStatus newStatus) {
-        // TODO: Check role? Is user is Admin or Investigator?
-//        Typ/Placeholder:
-//        if (user.getRole() != Role.ADMIN && user.getRole() != Role.INVESTIGATOR) {
-//            throw new AccessDeniedException("Only admins or investigators can update ticket status");
-//        }
-//        */
+
+        User user = requireCurrentUser();
 
         Ticket ticket = ticketRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
 
+        if (user.getRole() != Role.ADMIN) {
+
+            if (user.getRole() == Role.INVESTIGATOR) {
+
+                if (ticket.getInvestigator() == null ||
+                        !ticket.getInvestigator().getId().equals(user.getId())) {
+
+                    throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
+                }
+
+            } else {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
+            }
+        }
+
+        // status logic
+
         TicketStatus oldStatus = ticket.getStatus();
 
-        // No-op check
         if (oldStatus == newStatus) {
             return ticketMapper.entityToViewDTO(ticket);
         }
 
-        Set<TicketStatus> allowedTransitions = ALLOWED_TRANSITIONS.getOrDefault(ticket.getStatus(), Set.of());
+        Set<TicketStatus> allowedTransitions =
+                ALLOWED_TRANSITIONS.get(ticket.getStatus());
+
+        if (allowedTransitions == null) {
+            allowedTransitions = Set.of();
+        }
 
         if (!allowedTransitions.contains(newStatus)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid ticket status transition: Cannot transition from " + ticket.getStatus() + " to " + newStatus);
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Invalid transition from " + ticket.getStatus() + " to " + newStatus
+            );
         }
 
         if (newStatus == TicketStatus.IN_PROGRESS && ticket.getInvestigator() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot move ticket to IN_PROGRESS without an assigned investigator");
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Cannot move to IN_PROGRESS without investigator"
+            );
         }
 
         ticket.setStatus(newStatus);
         Ticket savedTicket = ticketRepository.save(ticket);
 
-        // TODO: Audit log(-service?), auditLogService.log()
-//        Typ/Placeholder:
-//        auditLogService.log(ticket.getId(), user, "STATUS_CHANGED",
-//                "Status changed from " + oldStatus + " to " + newStatus);
-
         return ticketMapper.entityToViewDTO(savedTicket);
     }
 
-    // Bestäm vilka övergångar/transitions som är tillåtna
     private static final Map<TicketStatus, Set<TicketStatus>> ALLOWED_TRANSITIONS = Map.of(
             TicketStatus.OPEN, Set.of(TicketStatus.IN_PROGRESS),
             TicketStatus.IN_PROGRESS, Set.of(TicketStatus.RESOLVED),
-            TicketStatus.RESOLVED, Set.of(TicketStatus.CLOSED, TicketStatus.IN_PROGRESS),
+            TicketStatus.RESOLVED, Set.of(TicketStatus.CLOSED),
             TicketStatus.CLOSED, Set.of()
     );
 
+
     @Transactional
     public TicketViewDTO assignInvestigator(Long id, Long investigatorId) {
-        // TODO Check if user is admin?
-//        Typ/Placeholder:
-//        if (user.getRole() != Role.ADMIN) {
-//            throw new AccessDeniedException("Only admins can assign handlers");
-//        }
-//        */
+
+        if (investigatorId == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Investigator ID is required"
+            );
+        }
+
+        User user = requireCurrentUser();
+        requireAdmin(user);
 
         Ticket ticket = ticketRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
 
         if (ticket.getInvestigator() != null) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, ("Ticket already has an investigator assigned"));
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Ticket already has an investigator assigned"
+            );
         }
 
         if (ticket.getStatus() != TicketStatus.OPEN) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ("Can only assign investigator to an  OPEN ticket, current status: " + ticket.getStatus()));
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Ticket must be in OPEN status to assign an investigator"
+            );
         }
 
         User investigator = userRepository.findById(investigatorId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Investigator not found"));
 
         if (investigator.getRole() != Role.INVESTIGATOR) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ("User is not an investigator"));
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "User is not an investigator"
+            );
         }
 
         ticket.setInvestigator(investigator);
         ticket.setStatus(TicketStatus.IN_PROGRESS);
+
         Ticket savedTicket = ticketRepository.save(ticket);
-        // TODO: auditLogService.log()
-//        Typ/Placeholder:
-//        auditLogService.log(ticket.getId(), user, "ASSIGNED",
-//                "Ticket assigned to " + investigatorId);
 
         return ticketMapper.entityToViewDTO(savedTicket);
     }
 
     @Transactional
     public TicketViewDTO unassignInvestigator(Long id) {
-        // TODO: Check if user is admin?
-//        Typ/Placeholder:
-//        if (actor.getRole() != Role.ADMIN) {
-//            throw new AccessDeniedException("Only admins can unassign handlers");
-//        }
-//        */
+
+        User user = requireCurrentUser();
+        requireAdmin(user);
 
         Ticket ticket = ticketRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
 
         if (ticket.getInvestigator() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ("Ticket does not have an investigator assigned"));
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No investigator assigned");
         }
 
         if (ticket.getStatus() != TicketStatus.IN_PROGRESS) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ("Can only unassign investigator from an IN_PROGRESS ticket, current status: " + ticket.getStatus()));
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Must be IN_PROGRESS");
         }
 
         ticket.setInvestigator(null);
         ticket.setStatus(TicketStatus.OPEN);
-        Ticket savedTicket = ticketRepository.save(ticket);
-        // TODO: auditLogService.log()
-//        Typ/Placeholder:
-//        auditLogService.log(ticket.getId(), user, "UNASSIGNED",
-//                "Ticket unassigned from " + investigatorId);
 
-        return ticketMapper.entityToViewDTO(savedTicket);
+        return ticketMapper.entityToViewDTO(ticketRepository.save(ticket));
     }
-
 }

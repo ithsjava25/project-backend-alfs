@@ -155,19 +155,32 @@ public class TicketService {
         }
     }
 
-    // ----------------- status logic -----------------
 
+    // ----------------- status logic -----------------
     @Transactional
     public TicketViewDTO updateTicketStatus(Long id, TicketStatus newStatus) {
 
         User user = securityUtils.getCurrentUser();
 
-        if (user.getRole() != Role.ADMIN && user.getRole() != Role.INVESTIGATOR) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
-        }
-
         Ticket ticket = ticketRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
+
+        if (user.getRole() != Role.ADMIN) {
+
+            if (user.getRole() == Role.INVESTIGATOR) {
+
+                if (ticket.getInvestigator() == null ||
+                        !ticket.getInvestigator().getId().equals(user.getId())) {
+
+                    throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
+                }
+
+            } else {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
+            }
+        }
+
+        // status logic
 
         TicketStatus oldStatus = ticket.getStatus();
 
@@ -179,13 +192,17 @@ public class TicketService {
                 ALLOWED_TRANSITIONS.getOrDefault(ticket.getStatus(), Set.of());
 
         if (!allowedTransitions.contains(newStatus)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Invalid transition from " + ticket.getStatus() + " to " + newStatus);
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Invalid transition from " + ticket.getStatus() + " to " + newStatus
+            );
         }
 
         if (newStatus == TicketStatus.IN_PROGRESS && ticket.getInvestigator() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Cannot move to IN_PROGRESS without investigator");
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Cannot move to IN_PROGRESS without investigator"
+            );
         }
 
         ticket.setStatus(newStatus);

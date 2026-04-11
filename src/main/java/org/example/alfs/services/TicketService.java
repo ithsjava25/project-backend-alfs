@@ -189,7 +189,11 @@ public class TicketService {
         }
 
         Set<TicketStatus> allowedTransitions =
-                ALLOWED_TRANSITIONS.getOrDefault(ticket.getStatus(), Set.of());
+                ALLOWED_TRANSITIONS.get(ticket.getStatus());
+
+        if (allowedTransitions == null) {
+            allowedTransitions = Set.of();
+        }
 
         if (!allowedTransitions.contains(newStatus)) {
             throw new ResponseStatusException(
@@ -221,6 +225,13 @@ public class TicketService {
     @Transactional
     public TicketViewDTO assignInvestigator(Long id, Long investigatorId) {
 
+        if (investigatorId == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Investigator ID is required"
+            );
+        }
+
         User user = securityUtils.getCurrentUser();
         requireAdmin(user);
 
@@ -228,18 +239,27 @@ public class TicketService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
 
         if (ticket.getInvestigator() != null) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Already assigned");
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Ticket already has an investigator assigned"
+            );
         }
 
         if (ticket.getStatus() != TicketStatus.OPEN) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Must be OPEN");
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Ticket must be in OPEN status to assign an investigator"
+            );
         }
 
         User investigator = userRepository.findById(investigatorId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Investigator not found"));
 
         if (investigator.getRole() != Role.INVESTIGATOR) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Not investigator");
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "User is not an investigator"
+            );
         }
 
         ticket.setInvestigator(investigator);
@@ -270,8 +290,6 @@ public class TicketService {
         ticket.setInvestigator(null);
         ticket.setStatus(TicketStatus.OPEN);
 
-        Ticket savedTicket = ticketRepository.save(ticket);
-
-        return ticketMapper.entityToViewDTO(savedTicket);
+        return ticketMapper.entityToViewDTO(ticketRepository.save(ticket));
     }
 }

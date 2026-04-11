@@ -45,7 +45,7 @@ public class TicketService {
         ticket.setTitle(ticketCreateDTO.getTitle());
         ticket.setDescription(ticketCreateDTO.getDescription());
 
-        User user = securityUtils.getCurrentUser();
+        User user = requireCurrentUser();
         ticket.setReporter(user);
 
         Ticket savedTicket = ticketRepository.save(ticket);
@@ -73,7 +73,7 @@ public class TicketService {
 
     // Get all tickets for a reporter
     public List<TicketViewDTO> getMyTickets() {
-        User user = securityUtils.getCurrentUser();
+        User user = requireCurrentUser();
 
         return ticketRepository.findByReporterId(user.getId())
                 .stream()
@@ -83,7 +83,7 @@ public class TicketService {
 
     // Get all tickets assigned to me
     public List<TicketViewDTO> getMyAssignedTickets() {
-        User user = securityUtils.getCurrentUser();
+        User user = requireCurrentUser();
 
         return ticketRepository.findByInvestigatorId(user.getId())
                 .stream()
@@ -94,7 +94,7 @@ public class TicketService {
     // ----------------- filters -----------------
 
     public List<TicketViewDTO> getTicketsByStatus(TicketStatus status) {
-        User user = securityUtils.getCurrentUser();
+        User user = requireCurrentUser();
         requireAdmin(user);
 
         return ticketRepository.findByStatus(status)
@@ -104,7 +104,7 @@ public class TicketService {
     }
 
     public List<TicketViewDTO> getTicketsByStatusAndInvestigator(TicketStatus status, Long investigatorId) {
-        User user = securityUtils.getCurrentUser();
+        User user = requireCurrentUser();
 
         if (user.getRole() == Role.ADMIN) {
             return ticketRepository.findByStatusAndInvestigatorId(status, investigatorId)
@@ -128,7 +128,7 @@ public class TicketService {
     // ----------------- helpers -----------------
 
     private void checkAccess(Ticket ticket) {
-        User user = securityUtils.getCurrentUser();
+        User user = requireCurrentUser();
 
         if (user.getRole() == Role.ADMIN) return;
 
@@ -155,12 +155,24 @@ public class TicketService {
         }
     }
 
+    private User requireCurrentUser() {
+        try {
+            return securityUtils.getCurrentUser();
+        } catch (RuntimeException ex) {
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED,
+                    "Authentication required",
+                    ex
+            );
+        }
+    }
+
 
     // ----------------- status logic -----------------
     @Transactional
     public TicketViewDTO updateTicketStatus(Long id, TicketStatus newStatus) {
 
-        User user = securityUtils.getCurrentUser();
+        User user = requireCurrentUser();
 
         Ticket ticket = ticketRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
@@ -218,9 +230,10 @@ public class TicketService {
     private static final Map<TicketStatus, Set<TicketStatus>> ALLOWED_TRANSITIONS = Map.of(
             TicketStatus.OPEN, Set.of(TicketStatus.IN_PROGRESS),
             TicketStatus.IN_PROGRESS, Set.of(TicketStatus.RESOLVED),
-            TicketStatus.RESOLVED, Set.of(TicketStatus.CLOSED, TicketStatus.IN_PROGRESS),
+            TicketStatus.RESOLVED, Set.of(TicketStatus.CLOSED),
             TicketStatus.CLOSED, Set.of()
     );
+
 
     @Transactional
     public TicketViewDTO assignInvestigator(Long id, Long investigatorId) {
@@ -232,7 +245,7 @@ public class TicketService {
             );
         }
 
-        User user = securityUtils.getCurrentUser();
+        User user = requireCurrentUser();
         requireAdmin(user);
 
         Ticket ticket = ticketRepository.findById(id)
@@ -273,7 +286,7 @@ public class TicketService {
     @Transactional
     public TicketViewDTO unassignInvestigator(Long id) {
 
-        User user = securityUtils.getCurrentUser();
+        User user = requireCurrentUser();
         requireAdmin(user);
 
         Ticket ticket = ticketRepository.findById(id)

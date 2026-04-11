@@ -42,7 +42,7 @@ public class AttachmentService {
             att.setTicket(ticket);
             attachmentRepository.save(att);
 
-            auditService.log(AuditAction.DOCUMENT_UPLOADED, "attachments", null, "objectKey:" + objectKey, ticket);
+            auditService.log(AuditAction.ATTACHMENT_ADDED, "attachments", null, "objectKey:" + objectKey, ticket);
 
             return att;
         } catch (Exception e) {

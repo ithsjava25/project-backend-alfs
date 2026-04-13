@@ -28,6 +28,12 @@ public class AttachmentController {
     @PostMapping("/upload")
     public ResponseEntity<?> upload(@RequestParam("ticketId") Long ticketId,
                                     @RequestParam("file") MultipartFile file) throws Exception {
+        if (ticketId == null || ticketId <= 0) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "Invalid ticketId",
+                    "detail", "Provide a positive numeric ticketId in form-data field 'ticketId'"
+            ));
+        }
         if (file == null || file.isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of(
                     "error", "File is empty",

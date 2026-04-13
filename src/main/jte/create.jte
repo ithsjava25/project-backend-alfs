@@ -6,13 +6,14 @@
     <form method="post" action="/tickets/create" class="space-y-4">
         <input type="text"
                name="title"
+               value="${ticket.getTitle()}"
                placeholder="Title"
                class="w-full border p-2 rounded"/>
 
         <textarea
                 name="description"
                 placeholder="Description"
-                  class="w-full border p-2 rounded h-32"></textarea>
+                  class="w-full border p-2 rounded h-32">${ticket.getDescription()}</textarea>
 
         <button
                 type="submit"

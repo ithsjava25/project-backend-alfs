@@ -5,6 +5,8 @@ import org.example.alfs.dto.ticket.TicketCreateDTO;
 import org.example.alfs.dto.ticket.TicketViewDTO;
 import org.example.alfs.entities.Ticket;
 import org.example.alfs.services.TicketService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -13,10 +15,11 @@ import org.springframework.web.bind.annotation.*;
 //TODO: Decide final routes and redirects
 
 @Controller
-@RequestMapping
+@RequestMapping("/tickets")
 public class TicketController {
 
     TicketService ticketService;
+    private static final Logger log = LoggerFactory.getLogger(TicketController.class);
 
 
     public TicketController(TicketService ticketService) {
@@ -34,20 +37,23 @@ public class TicketController {
 
     //TODO REDIRECT, WHERE??
     @PostMapping("/create")
-    public String createNewTicket(@ModelAttribute("ticket") @Valid TicketCreateDTO ticketCreateDTO,  BindingResult bindingResult) {
+    public String createNewTicket(@ModelAttribute("ticket") @Valid TicketCreateDTO ticketCreateDTO,  BindingResult bindingResult, Model model) {
         if (bindingResult.hasErrors()) {
+            log.info("Title: {}", ticketCreateDTO.getTitle());
+            log.info("Description: {}", ticketCreateDTO.getDescription());
+            model.addAttribute("ticket", ticketCreateDTO);
             return "create";
         }
 
-        ticketService.createNewTicket(ticketCreateDTO);
+        TicketViewDTO ticket = ticketService.createNewTicket(ticketCreateDTO);
 
-        return "redirect:/home";
+        return "redirect:/tickets/" + ticket.getId();
 
     }
 
     //view ticket by token
 
-    @GetMapping("/view/token/{token}")
+    @GetMapping("/token/{token}")
     public String viewTicketByToken(@PathVariable String token, Model model) {
 
         TicketViewDTO ticket = ticketService.getTicketByToken(token);
@@ -57,7 +63,7 @@ public class TicketController {
     }
 
     //view ticket by id
-    @GetMapping("/view/id/{id}")
+    @GetMapping("/{id}")
     public String viewTicketById(@PathVariable Long id, Model model) {
 
         TicketViewDTO ticket = ticketService.getTicketById(id);
@@ -70,6 +76,7 @@ public class TicketController {
     // TODO implement DTO + service
     @PostMapping("/{id}/assign")
     public String assignTicket(@PathVariable Long id) {
+
         return "redirect:/tickets/" + id;
     }
 
@@ -77,6 +84,7 @@ public class TicketController {
     // TODO implement DTO + service
     @PostMapping("/{id}/status")
     public String updateStatus(@PathVariable Long id) {
+
         return "redirect:/tickets/" + id;
     }
 

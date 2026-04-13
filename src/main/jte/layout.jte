@@ -29,6 +29,7 @@
         <nav class="space-x-6 text-sm">
             <a href="/" class="hover:text-[#b39359]">Home</a>
             <a href="tickets/create" class="hover:text-[#b39359]">Report</a>
+            <a href="/login" class="hover:text-[#b39359]">Sign in</a>
         </nav>
     </div>
 </header>

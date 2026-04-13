@@ -4,6 +4,8 @@ import io.minio.GetObjectResponse;
 import org.example.alfs.entities.Attachment;
 import org.example.alfs.repositories.AttachmentRepository;
 import org.example.alfs.service.storage.MinioStorageService;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.core.io.Resource;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -31,21 +33,34 @@ public class FileDownloadController {
     }
 
     @GetMapping("/{id}/download")
-    public ResponseEntity<byte[]> download(@PathVariable Long id) throws Exception {
+    public ResponseEntity<Resource> download(@PathVariable Long id) throws Exception {
         Attachment att = attachmentRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Attachment not found: " + id));
 
-        try (GetObjectResponse object = storageService.download(att.getS3Key())) {
-            byte[] bytes = object.readAllBytes();
-            String fileName = att.getFileName() != null ? att.getFileName() : "file";
-            String contentDisposition = ContentDisposition.builder("attachment")
-                    .filename(fileName, StandardCharsets.UTF_8)
-                    .build()
-                    .toString();
-            return ResponseEntity.ok()
-                    .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition)
-                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                    .body(bytes);
+        GetObjectResponse object = storageService.download(att.getS3Key());
+
+        String fileName = att.getFileName() != null ? att.getFileName() : "file";
+        String contentDisposition = ContentDisposition.builder("attachment")
+                .filename(fileName, StandardCharsets.UTF_8)
+                .build()
+                .toString();
+
+        // Wrap the stream in InputStreamResource for streaming response
+        InputStreamResource resource = new InputStreamResource(object);
+
+        // Get content length from response headers if available
+        long contentLength = object.headers().get("Content-Length") != null
+                ? Long.parseLong(object.headers().get("Content-Length"))
+                : -1;
+
+        ResponseEntity.BodyBuilder builder = ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition)
+                .contentType(MediaType.APPLICATION_OCTET_STREAM);
+
+        if (contentLength > 0) {
+            builder.contentLength(contentLength);
         }
+
+        return builder.body(resource);
     }
 }

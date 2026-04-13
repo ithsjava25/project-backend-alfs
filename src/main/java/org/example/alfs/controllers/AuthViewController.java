@@ -72,7 +72,7 @@ public class AuthViewController {
 
         response.addCookie(cookie);
 
-        return "redirect:/my"; // should redirect to my tickets?
+        return "redirect:/api/hello"; // should redirect to home?
     }
 
     @PostMapping("/logout")

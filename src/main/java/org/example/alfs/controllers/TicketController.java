@@ -1,12 +1,12 @@
 package org.example.alfs.controllers;
 
 import jakarta.validation.Valid;
+import org.example.alfs.dto.ticket.TicketAssignDTO;
 import org.example.alfs.dto.ticket.TicketCreateDTO;
+import org.example.alfs.dto.ticket.TicketStatusUpdateDTO;
 import org.example.alfs.dto.ticket.TicketViewDTO;
-import org.example.alfs.entities.Ticket;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.example.alfs.services.TicketService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/tickets")
 public class TicketController {
 
-    TicketService ticketService;
+    private final TicketService ticketService;
 
 
     public TicketController(TicketService ticketService) {
@@ -27,14 +27,14 @@ public class TicketController {
     }
 
     //create ticket
-
+    @PreAuthorize("hasRole('REPORTER')") // should change later for anonymous access
     @GetMapping("/create")
     public String createNewTicketForm(Model model) {
         model.addAttribute("ticket", new TicketCreateDTO());
         return "create";
     }
 
-    //TODO REDIRECT, WHERE??
+    @PreAuthorize("hasRole('REPORTER')") // should change later for anonymous access
     @PostMapping("/create")
     public String createNewTicket(@ModelAttribute("ticket") @Valid TicketCreateDTO ticketCreateDTO,  BindingResult bindingResult, Model model) {
         if (bindingResult.hasErrors()) {
@@ -60,6 +60,7 @@ public class TicketController {
     }
 
     //view ticket by id
+    @PreAuthorize("hasAnyRole('ADMIN','INVESTIGATOR','REPORTER')")
     @GetMapping("/{id}")
     public String viewTicketById(@PathVariable Long id, Model model) {
 
@@ -69,20 +70,42 @@ public class TicketController {
         return "view";
     }
 
+
     //assign ticket
-    // TODO implement DTO + service
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/{id}/assign")
-    public String assignTicket(@PathVariable Long id) {
+    public String assignTicket(@PathVariable Long id, @Valid @ModelAttribute TicketAssignDTO dto) {
+
+        ticketService.assignInvestigator(id, dto.getInvestigatorId());
 
         return "redirect:/tickets/" + id;
     }
 
     //update status
-    // TODO implement DTO + service
     @PostMapping("/{id}/status")
-    public String updateStatus(@PathVariable Long id) {
+    @PreAuthorize("hasAnyRole('ADMIN','INVESTIGATOR')")
+    public String updateStatus(@PathVariable Long id, @Valid @ModelAttribute TicketStatusUpdateDTO dto) {
+
+        ticketService.updateTicketStatus(id, dto.getStatus());
 
         return "redirect:/tickets/" + id;
+    }
+
+
+    @PreAuthorize("hasRole('REPORTER')")
+    @GetMapping("/my")
+    public String myTickets(Model model) {
+
+        model.addAttribute("tickets", ticketService.getMyTickets());
+        return "my-tickets";
+    }
+
+    @PreAuthorize("hasRole('INVESTIGATOR')")
+    @GetMapping("/assigned")
+    public String myAssignedTickets(Model model) {
+
+        model.addAttribute("tickets", ticketService.getMyAssignedTickets());
+        return "assigned-tickets";
     }
 
     //create comment

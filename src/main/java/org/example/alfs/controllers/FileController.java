@@ -48,8 +48,8 @@ public class FileController {
 
     // List attachments for a ticket
     @org.springframework.web.bind.annotation.GetMapping
-    public ResponseEntity<?> listByTicket(@RequestParam(name = "ticketId", required = true) Long ticketId) {
-        if (ticketId == null || ticketId <= 0) {
+    public ResponseEntity<?> listByTicket(@RequestParam(name = "ticketId") Long ticketId) {
+        if (ticketId <= 0) {
             return ResponseEntity.badRequest().body(Map.of(
                     "error", "Invalid ticketId",
                     "detail", "Provide a positive numeric ticketId as a query parameter"

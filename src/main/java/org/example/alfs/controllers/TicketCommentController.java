@@ -29,7 +29,7 @@ public class TicketCommentController {
             @PathVariable Long ticketId,
             @Valid @ModelAttribute CommentCreateDTO dto
     ) {
-        User user = getCurrentUserOrNull(); // anonymous user should be able to comment.
+        User user = getCurrentUserOrNull(); // unauthenticated users currently have no access; anonymous flow will be added later.
 
         commentService.addComment(ticketId, dto, user);
 
@@ -48,8 +48,18 @@ public class TicketCommentController {
     private User getCurrentUserOrNull() {
         try {
             return securityUtils.getCurrentUser();
-        } catch (Exception e) {
-            return null;
+        } catch (RuntimeException ex) {
+            String message = ex.getMessage();
+
+            boolean authFailure =
+                    "No authenticated user in security context".equals(message) ||
+                            "Authenticated user not found in database".equals(message);
+
+            if (authFailure) {
+                return null;
+            }
+
+            throw ex;
         }
     }
 }

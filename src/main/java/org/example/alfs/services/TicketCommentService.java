@@ -83,7 +83,7 @@ public class TicketCommentService {
 
         // If no user (anonymous) → deny access for now. Will be fixed later.
         if (user == null) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required");
         }
 
         if (user.getRole() == Role.ADMIN) return;

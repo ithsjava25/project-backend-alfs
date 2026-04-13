@@ -314,6 +314,7 @@ public class TicketService {
         ticket.setInvestigator(null);
         ticket.setStatus(TicketStatus.OPEN);
 
-        return ticketMapper.entityToViewDTO(ticketRepository.save(ticket));
+        Ticket savedTicket = ticketRepository.save(ticket);
+        return ticketMapper.entityToViewDTO(savedTicket);
     }
 }

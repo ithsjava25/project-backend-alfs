@@ -3,7 +3,7 @@ package org.example.alfs.controllers;
 import io.minio.GetObjectResponse;
 import org.example.alfs.entities.Attachment;
 import org.example.alfs.repositories.AttachmentRepository;
-import org.example.alfs.service.storage.MinioStorageService;
+import org.example.alfs.services.storage.MinioStorageService;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.ContentDisposition;

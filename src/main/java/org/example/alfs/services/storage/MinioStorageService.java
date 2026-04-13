@@ -1,4 +1,4 @@
-package org.example.alfs.service.storage;
+package org.example.alfs.services.storage;
 
 import io.minio.GetObjectArgs;
 import io.minio.GetObjectResponse;

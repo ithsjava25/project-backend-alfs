@@ -1,12 +1,10 @@
-package org.example.alfs.service;
+package org.example.alfs.services;
 
 import org.example.alfs.entities.AuditLog;
 import org.example.alfs.entities.Ticket;
 import org.example.alfs.enums.AuditAction;
 import org.example.alfs.repositories.AuditLogRepository;
 import org.springframework.stereotype.Service;
-
-import java.time.LocalDate;
 
 @Service
 public class AuditService {

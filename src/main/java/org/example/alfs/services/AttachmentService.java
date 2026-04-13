@@ -1,11 +1,11 @@
-package org.example.alfs.service;
+package org.example.alfs.services;
 
 import org.example.alfs.entities.Attachment;
 import org.example.alfs.entities.Ticket;
 import org.example.alfs.enums.AuditAction;
 import org.example.alfs.repositories.AttachmentRepository;
 import org.example.alfs.repositories.TicketRepository;
-import org.example.alfs.service.storage.MinioStorageService;
+import org.example.alfs.services.storage.MinioStorageService;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

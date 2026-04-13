@@ -40,15 +40,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         final String authHeader = request.getHeader("Authorization");
 
         String jwt = null;
-        // try to read from authorization header (postman)
+        // Try to read JWT from Authorization header (used by API/Postman)
+        // Ignore empty Bearer tokens so cookie fallback still works
         if(authHeader != null && authHeader.startsWith("Bearer ")){
-            jwt = authHeader.substring(7);
+            String bearer = authHeader.substring(7).trim();
+            if (!bearer.isEmpty()) {
+                jwt = bearer;
+            }
         }
 
-        // if no header try read cookie (browser)
-        if(jwt == null && request.getCookies() != null) {
+        // If no valid token in header, try reading JWT from cookies (browser)
+        if ((jwt == null || jwt.isBlank()) && request.getCookies() != null) {
             for (Cookie cookie : request.getCookies()) {
-                if("JWT".equals(cookie.getName())) {
+                if ("JWT".equals(cookie.getName())) {
                     jwt = cookie.getValue();
                     break;
                 }

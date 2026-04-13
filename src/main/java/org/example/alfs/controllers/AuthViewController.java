@@ -2,10 +2,13 @@ package org.example.alfs.controllers;
 
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
+import org.example.alfs.dto.auth.SignupRequestDTO;
 import org.example.alfs.entities.User;
 import org.example.alfs.security.JwtService;
 import org.example.alfs.services.AuthService;
 import org.springframework.stereotype.Controller;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -38,16 +41,18 @@ public class AuthViewController {
 
     @PostMapping("/signup-form")
     public String signupForm(
-            @RequestParam String username,
-            @RequestParam String password
+            @Valid @ModelAttribute SignupRequestDTO request,
+            BindingResult bindingResult
     ) {
-        var request = new org.example.alfs.dto.auth.SignupRequestDTO();
-        request.setUsername(username);
-        request.setPassword(password);
+        if (bindingResult.hasErrors()) {
+            return "signup";
+        }
 
         authService.signup(request);
 
         return "redirect:/login";
+
+
     }
 
     @PostMapping("/login-form")
@@ -67,7 +72,7 @@ public class AuthViewController {
 
         response.addCookie(cookie);
 
-        return "redirect:/api/hello"; // should redirect to home?
+        return "redirect:/my"; // should redirect to my tickets?
     }
 
     @PostMapping("/logout")

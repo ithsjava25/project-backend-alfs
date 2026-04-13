@@ -36,6 +36,8 @@ public class TicketCommentService {
         Ticket ticket = ticketRepository.findById(ticketId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
 
+        checkAccess(ticket, author);
+
         TicketComment comment = new TicketComment();
         comment.setTicket(ticket);
         comment.setAuthor(author);
@@ -54,14 +56,16 @@ public class TicketCommentService {
 
     @Transactional(readOnly = true)
     public List<CommentViewDTO> getComments(Long ticketId, User actor) {
-        List<TicketComment> all = ticketCommentRepository.findByTicketIdOrderByCreatedAtAsc(ticketId);
 
-        if (all.isEmpty()) {
-            ticketRepository.findById(ticketId)
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
-        }
+        Ticket ticket = ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
 
-        if (actor == null || actor.getRole() == Role.REPORTER) {
+        checkAccess(ticket, actor);
+
+        List<TicketComment> all =
+                ticketCommentRepository.findByTicketIdOrderByCreatedAtAsc(ticketId);
+
+        if (actor.getRole() == Role.REPORTER) {
             return all.stream()
                     .filter(comment -> !comment.isInternalNote())
                     .map(ticketCommentMapper::entityToViewDTO)
@@ -71,5 +75,33 @@ public class TicketCommentService {
         return all.stream()
                 .map(ticketCommentMapper::entityToViewDTO)
                 .toList();
+    }
+
+
+    // helpers
+    private void checkAccess(Ticket ticket, User user) {
+
+        // If no user (anonymous) → deny access for now. Will be fixed later.
+        if (user == null) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
+        }
+
+        if (user.getRole() == Role.ADMIN) return;
+
+        if (user.getRole() == Role.INVESTIGATOR) {
+            if (ticket.getInvestigator() != null &&
+                    ticket.getInvestigator().getId().equals(user.getId())) {
+                return;
+            }
+        }
+
+        if (user.getRole() == Role.REPORTER) {
+            if (ticket.getReporter() != null &&
+                    ticket.getReporter().getId().equals(user.getId())) {
+                return;
+            }
+        }
+
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
     }
 }

@@ -38,8 +38,13 @@ public class AttachmentService {
         String objectKey = storageService.upload(file);
 
         try {
+            String fileName = file.getOriginalFilename();
+            if (fileName == null || fileName.isBlank()) {
+                fileName = "file";
+            }
+
             Attachment att = new Attachment();
-            att.setFileName(file.getOriginalFilename() != null ? file.getOriginalFilename() : "file");
+            att.setFileName(fileName);
             att.setS3Key(objectKey);
             att.setTicket(ticket);
             attachmentRepository.save(att);

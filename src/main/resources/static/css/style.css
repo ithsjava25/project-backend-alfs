@@ -5,7 +5,7 @@
     --state-gray: #f4f4f4;
 }
 body {
-    font-family: 'Georgia', serif;
+    font-family: Georgia, serif;
     background-color: var(--state-gray);
     color: #333;
 }

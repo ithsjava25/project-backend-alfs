@@ -6,9 +6,11 @@ import org.example.alfs.enums.AuditAction;
 import org.example.alfs.repositories.AttachmentRepository;
 import org.example.alfs.repositories.TicketRepository;
 import org.example.alfs.service.storage.MinioStorageService;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class AttachmentService {
@@ -31,7 +33,7 @@ public class AttachmentService {
     @Transactional
     public Attachment uploadToTicket(Long ticketId, MultipartFile file) throws Exception {
         Ticket ticket = ticketRepository.findById(ticketId)
-                .orElseThrow(() -> new IllegalArgumentException("Ticket not found: " + ticketId));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found: " + ticketId));
 
         String objectKey = storageService.upload(file);
 

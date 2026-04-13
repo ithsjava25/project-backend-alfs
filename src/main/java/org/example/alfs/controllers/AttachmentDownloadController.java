@@ -33,11 +33,16 @@ public class AttachmentDownloadController {
     }
 
     @GetMapping("/{id}/download")
-    public ResponseEntity<Resource> download(@PathVariable Long id) throws Exception {
+    public ResponseEntity<Resource> download(@PathVariable Long id) {
         Attachment att = attachmentRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Attachment not found: " + id));
 
-        GetObjectResponse object = storageService.download(att.getS3Key());
+        final GetObjectResponse object;
+        try {
+            object = storageService.download(att.getS3Key());
+        } catch (Exception ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Failed to download attachment content", ex);
+        }
 
         String fileName = att.getFileName() != null ? att.getFileName() : "file";
         String contentDisposition = ContentDisposition.builder("attachment")

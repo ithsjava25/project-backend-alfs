@@ -2,13 +2,13 @@
 
 <form method="post" action="/signup-form">
     <div>
-        <label>Username</label>
-        <input name="username" />
+        <label for="username">Username</label>
+        <input id="username" name="username" />
     </div>
 
     <div>
-        <label>Password</label>
-        <input type="password" name="password" />
+        <label for="password">Password</label>
+        <input id="password" type="password" name="password" />
     </div>
 
     <button type="submit">Create account</button>

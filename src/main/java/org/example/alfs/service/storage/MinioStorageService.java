@@ -34,10 +34,11 @@ public class MinioStorageService {
         String objectKey = UUID.randomUUID() + "/" + sanitize(fileName);
 
         try (InputStream is = file.getInputStream()) {
+            String contentType = file.getContentType() != null ? file.getContentType() : "application/octet-stream";
             PutObjectArgs args = PutObjectArgs.builder()
                     .bucket(props.getBucket())
                     .object(objectKey)
-                    .contentType(file.getContentType())
+                    .contentType(contentType)
                     .stream(is, file.getSize(), -1)
                     .build();
             minioClient.putObject(args);

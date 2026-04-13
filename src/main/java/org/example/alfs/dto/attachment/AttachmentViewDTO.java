@@ -6,16 +6,16 @@ public class AttachmentViewDTO {
     private Long id;
     private Long ticketId;
     private String fileName;
-    private String s3Key;
+    private String downloadUrl;
     private LocalDateTime uploadedAt;
 
     public AttachmentViewDTO() {}
 
-    public AttachmentViewDTO(Long id, Long ticketId, String fileName, String s3Key, LocalDateTime uploadedAt) {
+    public AttachmentViewDTO(Long id, Long ticketId, String fileName, String downloadUrl, LocalDateTime uploadedAt) {
         this.id = id;
         this.ticketId = ticketId;
         this.fileName = fileName;
-        this.s3Key = s3Key;
+        this.downloadUrl = downloadUrl;
         this.uploadedAt = uploadedAt;
     }
 
@@ -43,12 +43,12 @@ public class AttachmentViewDTO {
         this.fileName = fileName;
     }
 
-    public String getS3Key() {
-        return s3Key;
+    public String getDownloadUrl() {
+        return downloadUrl;
     }
 
-    public void setS3Key(String s3Key) {
-        this.s3Key = s3Key;
+    public void setDownloadUrl(String downloadUrl) {
+        this.downloadUrl = downloadUrl;
     }
 
     public LocalDateTime getUploadedAt() {

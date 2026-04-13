@@ -40,7 +40,7 @@ public class FileController {
                 att.getId(),
                 att.getTicket() != null ? att.getTicket().getId() : null,
                 att.getFileName(),
-                att.getS3Key(),
+                "/api/files/" + att.getId() + "/download",
                 att.getUploadedAt()
         );
         return ResponseEntity.ok(dto);
@@ -61,7 +61,7 @@ public class FileController {
                 att.getId(),
                 att.getTicket() != null ? att.getTicket().getId() : null,
                 att.getFileName(),
-                att.getS3Key(),
+                "/api/files/" + att.getId() + "/download",
                 att.getUploadedAt()
         )).toList();
         return ResponseEntity.ok(dtoList);

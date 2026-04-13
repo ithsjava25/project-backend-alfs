@@ -45,7 +45,7 @@ public class SecurityConfig {
                         .requestMatchers("/h2-console/**").permitAll()
 
                         //allow access to endpoints during development
-                        .requestMatchers("/create", "/view/**").permitAll()
+                        .requestMatchers("/create", "/tickets/**", "/view/**").permitAll()
                         .requestMatchers("/css/**", "/js/**", "/images/**", "/static/**").permitAll()
                         .anyRequest().authenticated()
                 )

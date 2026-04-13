@@ -21,13 +21,13 @@ import java.nio.charset.StandardCharsets;
 
 @RestController
 @RequestMapping("/api/files")
-public class FileDownloadController {
+public class AttachmentDownloadController {
 
     private final AttachmentRepository attachmentRepository;
     private final MinioStorageService storageService;
 
-    public FileDownloadController(AttachmentRepository attachmentRepository,
-                                  MinioStorageService storageService) {
+    public AttachmentDownloadController(AttachmentRepository attachmentRepository,
+                                        MinioStorageService storageService) {
         this.attachmentRepository = attachmentRepository;
         this.storageService = storageService;
     }

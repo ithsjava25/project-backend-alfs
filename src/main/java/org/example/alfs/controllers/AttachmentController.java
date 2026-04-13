@@ -15,12 +15,12 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/files")
-public class FileController {
+public class AttachmentController {
 
     private final AttachmentService attachmentService;
     private final AttachmentRepository attachmentRepository;
 
-    public FileController(AttachmentService attachmentService, AttachmentRepository attachmentRepository) {
+    public AttachmentController(AttachmentService attachmentService, AttachmentRepository attachmentRepository) {
         this.attachmentService = attachmentService;
         this.attachmentRepository = attachmentRepository;
     }

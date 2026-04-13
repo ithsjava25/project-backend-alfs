@@ -48,7 +48,7 @@ public class AuthController {
      * For browser-based login, see AuthViewController.
      */
     @PostMapping("/login")
-    public LoginResponseDTO login(@Valid @RequestBody LoginRequestDTO request, HttpServletResponse response) {
+    public LoginResponseDTO login(@Valid @RequestBody LoginRequestDTO request) {
 
         User user = authService.login(
                 request.getUsername(),
@@ -56,12 +56,7 @@ public class AuthController {
         );
 
         String token = jwtService.generateToken(user);
-        Cookie jwtCookie = new Cookie("JWT", token);
-        jwtCookie.setHttpOnly(true);
-        jwtCookie.setPath("/");
-        jwtCookie.setMaxAge(60 * 60 * 24);
 
-        response.addCookie(jwtCookie);
         return new LoginResponseDTO(token);
     }
 

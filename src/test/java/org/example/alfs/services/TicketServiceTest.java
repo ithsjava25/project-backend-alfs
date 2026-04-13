@@ -16,6 +16,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Optional;
 
@@ -82,6 +84,25 @@ class TicketServiceTest {
 
             // Assert
             assertEquals(TicketStatus.IN_PROGRESS, ticket.getStatus());
+        }
+
+        @Test
+        @DisplayName("Invalid transition should throw Bad Request")
+        void invalidTransition_shouldThrowBadRequest() {
+            // Arrange
+            Ticket ticket = openTicket();
+            User admin = adminUser();
+
+            when(securityUtils.getCurrentUser()).thenReturn(admin);
+            when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+
+            // Act
+            ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
+                    ticketService.updateTicketStatus(1L, TicketStatus.CLOSED)
+            );
+
+            // Assert
+            assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
         }
 
     }

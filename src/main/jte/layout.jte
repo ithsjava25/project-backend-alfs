@@ -28,7 +28,7 @@
 
         <nav class="space-x-6 text-sm">
             <a href="/" class="hover:text-[#b39359]">Home</a>
-            <a href="/create" class="hover:text-[#b39359]">Report</a>
+            <a href="tickets/create" class="hover:text-[#b39359]">Report</a>
         </nav>
     </div>
 </header>

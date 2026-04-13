@@ -19,7 +19,6 @@ import org.springframework.web.bind.annotation.*;
 public class TicketController {
 
     TicketService ticketService;
-    private static final Logger log = LoggerFactory.getLogger(TicketController.class);
 
 
     public TicketController(TicketService ticketService) {
@@ -39,8 +38,6 @@ public class TicketController {
     @PostMapping("/create")
     public String createNewTicket(@ModelAttribute("ticket") @Valid TicketCreateDTO ticketCreateDTO,  BindingResult bindingResult, Model model) {
         if (bindingResult.hasErrors()) {
-            log.info("Title: {}", ticketCreateDTO.getTitle());
-            log.info("Description: {}", ticketCreateDTO.getDescription());
             model.addAttribute("ticket", ticketCreateDTO);
             return "create";
         }

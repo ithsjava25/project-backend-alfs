@@ -184,30 +184,22 @@ public class TicketService {
     public TicketViewDTO updateTicketStatus(Long id, TicketStatus newStatus) {
 
         User user = requireCurrentUser();
-
         Ticket ticket = ticketRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
 
         if (user.getRole() != Role.ADMIN) {
+            boolean isAssignedInvestigator =
+                    user.getRole() == Role.INVESTIGATOR &&
+                            ticket.getInvestigator() != null &&
+                            ticket.getInvestigator().getId().equals(user.getId());
 
-            if (user.getRole() == Role.INVESTIGATOR) {
-
-                if (ticket.getInvestigator() == null ||
-                        !ticket.getInvestigator().getId().equals(user.getId())) {
-
-                    throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
-                }
-
-            } else {
+            if (!isAssignedInvestigator) {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
             }
         }
 
-        // status logic
-
-        TicketStatus oldStatus = ticket.getStatus();
-
-        if (oldStatus == newStatus) {
+        TicketStatus currentStatus = ticket.getStatus();
+        if (currentStatus == newStatus) {
             return ticketMapper.entityToViewDTO(ticket);
         }
 
@@ -221,7 +213,7 @@ public class TicketService {
         if (!allowedTransitions.contains(newStatus)) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
-                    "Invalid transition from " + ticket.getStatus() + " to " + newStatus
+                    "Invalid transition from " + currentStatus + " to " + newStatus
             );
         }
 

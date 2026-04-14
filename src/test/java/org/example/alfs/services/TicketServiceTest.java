@@ -1,5 +1,6 @@
 package org.example.alfs.services;
 
+import org.example.alfs.dto.ticket.TicketCreateDTO;
 import org.example.alfs.dto.ticket.TicketViewDTO;
 import org.example.alfs.entities.Ticket;
 import org.example.alfs.entities.User;
@@ -13,6 +14,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -67,6 +69,30 @@ class TicketServiceTest {
         u.setId(300L);
         u.setRole(Role.REPORTER);
         return u;
+    }
+
+    @Test
+    @DisplayName("createNewTicket should set reporter as user")
+    void createNewTicket_shouldSetReporterAsUser() {
+        // Arrange
+        TicketCreateDTO dto = new TicketCreateDTO();
+        dto.setTitle("Test Ticket");
+        dto.setDescription("This is a test ticket");
+        User reporter = reporterUser();
+
+        when(securityUtils.getCurrentUser()).thenReturn(reporter);
+        when(ticketRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+        when(ticketMapper.entityToViewDTO(any())).thenReturn(new TicketViewDTO());
+
+        // Act
+        ticketService.createNewTicket(dto);
+
+        // Assert
+        verify(ticketRepository).save(argThat(ticket ->
+                ticket.getReporter().equals(reporter) &&
+                        ticket.getTitle().equals("Test Ticket") &&
+                        ticket.getDescription().equals("This is a test ticket")
+        ));
     }
 
     @Nested

@@ -151,5 +151,24 @@ class TicketServiceTest {
             verify(ticketRepository, never()).save(any());
         }
 
+        @Test
+        @DisplayName("Status change without investigator should throw BadRequest")
+        void statusChange_withoutInvestigator_shouldThrowBadRequest() {
+            // Arrange
+            Ticket ticket = openTicket();
+            User admin = adminUser();
+
+            when(securityUtils.getCurrentUser()).thenReturn(admin);
+            when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+
+            // Act
+            ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
+                    ticketService.updateTicketStatus(1L, TicketStatus.IN_PROGRESS));
+
+            // Assert
+            assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
+            verify(ticketRepository, never()).save(any());
+        }
+
     }
 }

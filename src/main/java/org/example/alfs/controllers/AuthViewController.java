@@ -7,9 +7,11 @@ import org.example.alfs.dto.auth.SignupRequestDTO;
 import org.example.alfs.entities.User;
 import org.example.alfs.security.JwtService;
 import org.example.alfs.services.AuthService;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 /**
  * Handles login for the browser (UI).
@@ -61,18 +63,30 @@ public class AuthViewController {
             @RequestParam String password,
             HttpServletResponse response
     ) {
-        User user = authService.login(username, password);
+        try {
+            User user = authService.login(username, password);
 
-        String token = jwtService.generateToken(user);
+            String token = jwtService.generateToken(user);
 
-        Cookie cookie = new Cookie("JWT", token);
-        cookie.setHttpOnly(true);
-        cookie.setPath("/");
-        cookie.setMaxAge(60 * 60 * 24);
+            Cookie cookie = new Cookie("JWT", token);
+            cookie.setHttpOnly(true);
+            cookie.setPath("/");
+            cookie.setMaxAge(60 * 60 * 24);
 
-        response.addCookie(cookie);
+            response.addCookie(cookie);
 
-        return "redirect:/api/hello"; // should redirect to home?
+            return "redirect:/api/hello"; // should change later
+
+        } catch (ResponseStatusException ex) {
+
+            // login-error -> redirect to form and show error
+            if (ex.getStatusCode() == HttpStatus.UNAUTHORIZED) {
+                return "redirect:/login?error=true";
+            }
+
+            // other error throw
+            throw ex;
+        }
     }
 
     @PostMapping("/logout")

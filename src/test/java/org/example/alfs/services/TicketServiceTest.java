@@ -14,7 +14,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -93,6 +92,42 @@ class TicketServiceTest {
                         ticket.getTitle().equals("Test Ticket") &&
                         ticket.getDescription().equals("This is a test ticket")
         ));
+    }
+
+    @Nested
+    @DisplayName("requireCurrentUser tests")
+    class RequireCurrentUserTests {
+
+        @Test
+        @DisplayName("No authenticated user in security context should throw Unauthorized")
+        void noAuthenticatedUser_shouldThrowUnauthorized() {
+            // Arrange
+            when(securityUtils.getCurrentUser())
+                    .thenThrow(new RuntimeException("No authenticated user in security context"));
+
+            // Act
+            ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                    () -> ticketService.createNewTicket(new TicketCreateDTO()));
+
+            // Assert
+            assertEquals(HttpStatus.UNAUTHORIZED, ex.getStatusCode());
+        }
+
+        @Test
+        @DisplayName("Authenticated user not found in database should throw Unauthorized")
+        void userNotFoundInDatabase_shouldThrowUnauthorized() {
+            // Arrange
+            when(securityUtils.getCurrentUser())
+                    .thenThrow(new RuntimeException("Authenticated user not found in database"));
+
+            // Act
+            ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                    () -> ticketService.createNewTicket(new TicketCreateDTO()));
+
+            // Assert
+            assertEquals(HttpStatus.UNAUTHORIZED, ex.getStatusCode());
+        }
+
     }
 
     @Nested

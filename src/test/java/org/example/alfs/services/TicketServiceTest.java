@@ -244,6 +244,27 @@ class TicketServiceTest {
             verify(ticketRepository, never()).save(any());
         }
 
+        @Test
+        @DisplayName("Assigning investigator should throw Bad Request when ticket is not open")
+        void assignInvestigator_shouldThrowBadRequest_whenIsNotOpen() {
+            // Arrange
+            Ticket ticket = openTicket();
+            User admin = adminUser();
+            User investigator = investigatorUser();
+            ticket.setStatus(TicketStatus.CLOSED);
+
+            when(securityUtils.getCurrentUser()).thenReturn(admin);
+            when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+
+            // Act
+            ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
+                    ticketService.assignInvestigator(1L, investigator.getId()));
+
+            // Assert
+            assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
+            verify(ticketRepository, never()).save(any());
+        }
+
     }
 
     @Nested

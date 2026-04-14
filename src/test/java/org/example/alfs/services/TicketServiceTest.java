@@ -114,7 +114,7 @@ class TicketServiceTest {
         }
 
         @Test
-        @DisplayName("Investigator should have access if assigned")
+        @DisplayName("Assigned investigator should have access")
         void investigator_shouldHaveAccessIfAssigned() {
             // Arrange + Act
             Ticket ticket = openTicket();
@@ -127,6 +127,29 @@ class TicketServiceTest {
 
             // Assert
             assertDoesNotThrow(() -> ticketService.getTicketById(1L));
+        }
+
+        @Test
+        @DisplayName("Unassigned investigator should not have access")
+        void unassignedInvestigator_shouldBeForbidden() {
+            // Arrange
+            Ticket ticket = openTicket();
+            User investigator = investigatorUser();
+
+            User otherInvestigator = new User();
+            otherInvestigator.setId(201L);
+            otherInvestigator.setRole(Role.INVESTIGATOR);
+            ticket.setInvestigator(otherInvestigator);
+
+            when(securityUtils.getCurrentUser()).thenReturn(investigator);
+            when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+
+            // Act
+            ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
+                    ticketService.getTicketById(1L));
+
+            // Assert
+            assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
         }
 
     }

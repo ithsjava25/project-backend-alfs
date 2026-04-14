@@ -224,6 +224,18 @@ class TicketServiceTest {
         }
 
         @Test
+        @DisplayName("Assigning investigator should throw Bad Request when investigatorId is null")
+        void assignInvestigator_shouldThrowBadRequest_whenInvestigatorIsNull() {
+            // Arrange + Act
+            ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
+                    ticketService.assignInvestigator(1L, null));
+
+            // Assert
+            assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
+            verify(ticketRepository, never()).save(any());
+        }
+
+        @Test
         @DisplayName("Assigning investigator should throw Conflict when ticket is already assigned")
         void assignInvestigator_shouldThrowConflict_whenTicketAlreadyAssigned() {
             // Arrange

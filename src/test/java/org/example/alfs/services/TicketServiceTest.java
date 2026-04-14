@@ -23,6 +23,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @DisplayName("TicketService Test")
@@ -84,6 +85,7 @@ class TicketServiceTest {
 
             // Assert
             assertEquals(TicketStatus.IN_PROGRESS, ticket.getStatus());
+            verify(ticketRepository).save(ticket);
         }
 
         @Test
@@ -98,8 +100,7 @@ class TicketServiceTest {
 
             // Act
             ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
-                    ticketService.updateTicketStatus(1L, TicketStatus.CLOSED)
-            );
+                    ticketService.updateTicketStatus(1L, TicketStatus.CLOSED));
 
             // Assert
             assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());

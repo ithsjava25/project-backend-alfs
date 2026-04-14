@@ -11,7 +11,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-
+import jakarta.servlet.http.Cookie;
 import java.io.IOException;
 import java.util.List;
 
@@ -35,20 +35,37 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain filterChain)
-            throws ServletException, IOException {
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
 
         final String authHeader = request.getHeader("Authorization");
 
-        // if no token, keep going
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+        String jwt = null;
+        // Try to read JWT from Authorization header (used by API/Postman)
+        // Ignore empty Bearer tokens so cookie fallback still works
+        if(authHeader != null && authHeader.startsWith("Bearer ")){
+            String bearer = authHeader.substring(7).trim();
+            if (!bearer.isEmpty()) {
+                jwt = bearer;
+            }
+        }
+
+        // If no valid token in header, try reading JWT from cookies (browser)
+        if ((jwt == null || jwt.isBlank()) && request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                if ("JWT".equals(cookie.getName())) {
+                    jwt = cookie.getValue();
+                    break;
+                }
+            }
+        }
+
+        // if still no token, continue without auth
+        if(jwt == null) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        String jwt = authHeader.substring(7);
+
         String username;
         try {
             username = jwtService.extractUsername(jwt);

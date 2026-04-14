@@ -1,5 +1,7 @@
 package org.example.alfs.controllers;
 
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
 import org.example.alfs.dto.auth.LoginRequestDTO;
 import org.example.alfs.dto.auth.LoginResponseDTO;
 import org.example.alfs.dto.auth.SignupRequestDTO;
@@ -9,6 +11,24 @@ import org.example.alfs.services.AuthService;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 
+
+/**
+ * REST-based authentication controller used for API clients such as Postman.
+ *
+ * This controller handles JSON-based authentication requests and returns JWT tokens.
+ *
+ * NOTE:
+ * The application also contains a separate AuthViewController which handles
+ * browser-based login using HTML forms and cookies.
+ *
+ * We intentionally separate these concerns:
+ *
+ * - AuthController → API (JSON, used for testing and potential future clients)
+ * - AuthViewController → UI (HTML forms, browser login flow)
+ *
+ * This separation keeps the API clean and allows independent development
+ * of backend logic and user interface.
+ */
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
@@ -22,7 +42,10 @@ public class AuthController {
     }
 
     /**
-     * Authenticates a user by validating credentials and returns a JWT token.
+     * Authenticates a user using JSON input and returns a JWT.
+     *
+     * This endpoint is mainly used for API testing (e.g. Postman).
+     * For browser-based login, see AuthViewController.
      */
     @PostMapping("/login")
     public LoginResponseDTO login(@Valid @RequestBody LoginRequestDTO request) {
@@ -33,6 +56,7 @@ public class AuthController {
         );
 
         String token = jwtService.generateToken(user);
+
         return new LoginResponseDTO(token);
     }
 

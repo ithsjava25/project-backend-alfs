@@ -43,6 +43,8 @@ public class SecurityConfig {
                         .requestMatchers("/auth/signup").permitAll()
                         .requestMatchers("/auth/hash").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()
+                        .requestMatchers("/login", "/login-form").permitAll()
+                        .requestMatchers("/signup", "/signup-form").permitAll()
                         .anyRequest().authenticated()
                 )
 

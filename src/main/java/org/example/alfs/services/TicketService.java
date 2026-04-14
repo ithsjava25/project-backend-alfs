@@ -185,7 +185,8 @@ public class TicketService {
 
         User user = requireCurrentUser();
         Ticket ticket = ticketRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Ticket not found"));
 
         if (user.getRole() != Role.ADMIN) {
             boolean isAssignedInvestigator =
@@ -194,39 +195,34 @@ public class TicketService {
                             ticket.getInvestigator().getId().equals(user.getId());
 
             if (!isAssignedInvestigator) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
+                throw new ResponseStatusException(
+                        HttpStatus.FORBIDDEN, "Access denied");
             }
         }
 
         TicketStatus currentStatus = ticket.getStatus();
+
         if (currentStatus == newStatus) {
             return ticketMapper.entityToViewDTO(ticket);
         }
 
-        Set<TicketStatus> allowedTransitions =
-                ALLOWED_TRANSITIONS.get(ticket.getStatus());
+        Set<TicketStatus> allowedTransitions = ALLOWED_TRANSITIONS.getOrDefault(currentStatus, Set.of());
 
-        if (allowedTransitions == null) {
-            allowedTransitions = Set.of();
-        }
+        boolean isValidTransition = allowedTransitions.contains(newStatus);
 
-        if (!allowedTransitions.contains(newStatus)) {
+        if (!isValidTransition) {
             throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "Invalid transition from " + currentStatus + " to " + newStatus
-            );
+                    HttpStatus.BAD_REQUEST, "Invalid transition from " + currentStatus + " to " + newStatus);
         }
 
         if (newStatus == TicketStatus.IN_PROGRESS && ticket.getInvestigator() == null) {
             throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "Cannot move to IN_PROGRESS without investigator"
-            );
+                    HttpStatus.BAD_REQUEST, "Cannot move to IN_PROGRESS without investigator");
         }
 
         ticket.setStatus(newStatus);
-        Ticket savedTicket = ticketRepository.save(ticket);
 
+        Ticket savedTicket = ticketRepository.save(ticket);
         return ticketMapper.entityToViewDTO(savedTicket);
     }
 
@@ -243,46 +239,39 @@ public class TicketService {
 
         if (investigatorId == null) {
             throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "Investigator ID is required"
-            );
+                    HttpStatus.BAD_REQUEST, "Investigator ID is required");
         }
 
         User user = requireCurrentUser();
         requireAdmin(user);
 
         Ticket ticket = ticketRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Ticket not found"));
 
         if (ticket.getInvestigator() != null) {
             throw new ResponseStatusException(
-                    HttpStatus.CONFLICT,
-                    "Ticket already has an investigator assigned"
-            );
+                    HttpStatus.CONFLICT, "Ticket already has an investigator assigned");
         }
 
         if (ticket.getStatus() != TicketStatus.OPEN) {
             throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "Ticket must be in OPEN status to assign an investigator"
-            );
+                    HttpStatus.BAD_REQUEST, "Ticket must be in OPEN status to assign an investigator");
         }
 
         User investigator = userRepository.findById(investigatorId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Investigator not found"));
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Investigator not found"));
 
         if (investigator.getRole() != Role.INVESTIGATOR) {
             throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "User is not an investigator"
-            );
+                    HttpStatus.BAD_REQUEST, "User is not an investigator");
         }
 
         ticket.setInvestigator(investigator);
         ticket.setStatus(TicketStatus.IN_PROGRESS);
 
         Ticket savedTicket = ticketRepository.save(ticket);
-
         return ticketMapper.entityToViewDTO(savedTicket);
     }
 
@@ -293,14 +282,17 @@ public class TicketService {
         requireAdmin(user);
 
         Ticket ticket = ticketRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Ticket not found"));
 
         if (ticket.getInvestigator() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No investigator assigned");
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "No investigator assigned");
         }
 
         if (ticket.getStatus() != TicketStatus.IN_PROGRESS) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Must be IN_PROGRESS");
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "Must be IN_PROGRESS");
         }
 
         ticket.setInvestigator(null);

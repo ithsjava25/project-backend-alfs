@@ -197,4 +197,62 @@ class TicketServiceTest {
 
     }
 
+    @Nested
+    @DisplayName("assignInvestigator tests")
+    class assignInvestigatorTests {
+
+        @Test
+        @DisplayName("Assigning investigator should succeed")
+        void assignInvestigator_shouldSucceed() {
+            // Arrange
+            Ticket ticket = openTicket();
+            User admin = adminUser();
+            User investigator = investigatorUser();
+
+            when(securityUtils.getCurrentUser()).thenReturn(admin);
+            when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+            when(userRepository.findById(investigator.getId())).thenReturn(Optional.of(investigator));
+            when(ticketRepository.save(any())).thenReturn(ticket);
+            when(ticketMapper.entityToViewDTO(any())).thenReturn(new TicketViewDTO());
+
+            // Act
+            ticketService.assignInvestigator(1L, investigator.getId());
+
+            // Assert
+            assertEquals(investigator, ticket.getInvestigator());
+            assertEquals(TicketStatus.IN_PROGRESS, ticket.getStatus());
+            verify(ticketRepository).save(ticket);
+        }
+
+    }
+
+    @Nested
+    @DisplayName("unassignInvestigator tests")
+    class unassignInvestigatorTests {
+
+        @Test
+        @DisplayName("Unassigning investigator should succeed")
+        void unassignInvestigator_shouldSucceed() {
+            // Arrange
+            Ticket ticket = openTicket();
+            User admin = adminUser();
+            User investigator = investigatorUser();
+
+            ticket.setInvestigator(investigator);
+            ticket.setStatus(TicketStatus.IN_PROGRESS);
+
+            when(securityUtils.getCurrentUser()).thenReturn(admin);
+            when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+            when(ticketRepository.save(any())).thenReturn(ticket);
+            when(ticketMapper.entityToViewDTO(any())).thenReturn(new TicketViewDTO());
+
+            // Act
+            ticketService.unassignInvestigator(1L);
+
+            // Assert
+            assertNull(ticket.getInvestigator());
+            assertEquals(TicketStatus.OPEN, ticket.getStatus());
+            verify(ticketRepository).save(ticket);
+        }
+    }
 }

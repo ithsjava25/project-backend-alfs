@@ -180,7 +180,6 @@ class TicketServiceTest {
             User otherInvestigator = new User();
             otherInvestigator.setId(201L);
             otherInvestigator.setRole(Role.INVESTIGATOR);
-
             ticket.setInvestigator(otherInvestigator);
 
             when(securityUtils.getCurrentUser()).thenReturn(investigator);
@@ -224,6 +223,27 @@ class TicketServiceTest {
             verify(ticketRepository).save(ticket);
         }
 
+        @Test
+        @DisplayName("Assigning investigator should throw Conflict when ticket is already assigned")
+        void assignInvestigator_shouldThrowConflict_whenTicketAlreadyAssigned() {
+            // Arrange
+            Ticket ticket = openTicket();
+            User admin = adminUser();
+            User investigator = investigatorUser();
+            ticket.setInvestigator(investigator);
+
+            when(securityUtils.getCurrentUser()).thenReturn(admin);
+            when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+
+            // Act
+            ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
+                    ticketService.assignInvestigator(1L, investigator.getId()));
+
+            // Assert
+            assertEquals(HttpStatus.CONFLICT, ex.getStatusCode());
+            verify(ticketRepository, never()).save(any());
+        }
+
     }
 
     @Nested
@@ -237,7 +257,6 @@ class TicketServiceTest {
             Ticket ticket = openTicket();
             User admin = adminUser();
             User investigator = investigatorUser();
-
             ticket.setInvestigator(investigator);
             ticket.setStatus(TicketStatus.IN_PROGRESS);
 

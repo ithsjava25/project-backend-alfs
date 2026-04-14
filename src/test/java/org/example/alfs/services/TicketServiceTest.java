@@ -157,6 +157,7 @@ class TicketServiceTest {
             // Arrange
             Ticket ticket = openTicket();
             User admin = adminUser();
+            ticket.setInvestigator(null);
 
             when(securityUtils.getCurrentUser()).thenReturn(admin);
             when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
@@ -326,6 +327,48 @@ class TicketServiceTest {
             assertNull(ticket.getInvestigator());
             assertEquals(TicketStatus.OPEN, ticket.getStatus());
             verify(ticketRepository).save(ticket);
+        }
+
+        @Test
+        @DisplayName("Unassigning investigator should throw Bad Request when no investigator is assigned")
+        void unassignInvestigator_shouldThrowBadRequest_whenNoInvestigatorAssigned() {
+            // Arrange
+            Ticket ticket = openTicket();
+            User admin = adminUser();
+            ticket.setInvestigator(null);
+
+            when(securityUtils.getCurrentUser()).thenReturn(admin);
+            when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+
+            // Act
+            ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
+                    ticketService.unassignInvestigator(1L));
+
+            // Assert
+            assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
+            verify(ticketRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("Unassigning investigator should throw Bad Request when ticket is not in progress")
+        void unassignInvestigator_shouldThrowBadRequest_whenTicketNotInProgress() {
+            // Arrange
+            Ticket ticket = openTicket();
+            User admin = adminUser();
+            User investigator = investigatorUser();
+            ticket.setInvestigator(investigator);
+            ticket.setStatus(TicketStatus.OPEN);
+
+            when(securityUtils.getCurrentUser()).thenReturn(admin);
+            when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+
+            // Act
+            ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
+                    ticketService.unassignInvestigator(1L));
+
+            // Assert
+            assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
+            verify(ticketRepository, never()).save(any());
         }
     }
 }

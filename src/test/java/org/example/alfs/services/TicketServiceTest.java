@@ -152,6 +152,23 @@ class TicketServiceTest {
             assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
         }
 
+        @Test
+        @DisplayName("Reporter who owns the ticket should have access")
+        void owningReporter_shouldHaveAccess() {
+            // Arrange
+            Ticket ticket = openTicket();
+            User reporter = reporterUser();
+            ticket.setReporter(reporter);
+
+            // Act
+            when(securityUtils.getCurrentUser()).thenReturn(reporter);
+            when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+            when(ticketMapper.entityToViewDTO(any())).thenReturn(new TicketViewDTO());
+
+            // Assert
+            assertDoesNotThrow(() -> ticketService.getTicketById(1L));
+        }
+
     }
 
     @Nested

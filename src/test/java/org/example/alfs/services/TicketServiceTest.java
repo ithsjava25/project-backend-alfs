@@ -23,8 +23,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @DisplayName("TicketService Test")
 @ExtendWith(MockitoExtension.class)
@@ -60,6 +59,13 @@ class TicketServiceTest {
         User u = new User();
         u.setId(200L);
         u.setRole(Role.INVESTIGATOR);
+        return u;
+    }
+
+    private User reporterUser() {
+        User u = new User();
+        u.setId(300L);
+        u.setRole(Role.REPORTER);
         return u;
     }
 
@@ -104,6 +110,26 @@ class TicketServiceTest {
 
             // Assert
             assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
+            verify(ticketRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("Reporter should not be able to update status")
+        void reporterStatusUpdate_shouldThrowForbidden() {
+            // Arrange
+            Ticket ticket = openTicket();
+            User reporter = reporterUser();
+
+            when(securityUtils.getCurrentUser()).thenReturn(reporter);
+            when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+
+            // Act
+            ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
+                    ticketService.updateTicketStatus(1L, TicketStatus.CLOSED));
+
+            // Assert
+            assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
+            verify(ticketRepository, never()).save(any());
         }
 
     }

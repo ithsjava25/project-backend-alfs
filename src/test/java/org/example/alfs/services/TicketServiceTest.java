@@ -152,7 +152,7 @@ class TicketServiceTest {
         }
 
         @Test
-        @DisplayName("Status change without investigator should throw BadRequest")
+        @DisplayName("Status change without investigator should throw Bad Request")
         void statusChange_withoutInvestigator_shouldThrowBadRequest() {
             // Arrange
             Ticket ticket = openTicket();
@@ -170,5 +170,31 @@ class TicketServiceTest {
             verify(ticketRepository, never()).save(any());
         }
 
+        @Test
+        @DisplayName("Investigator not assigned should be forbidden")
+        void investigator_notAssigned_shouldBeForbidden() {
+            // Arrange
+            Ticket ticket = openTicket();
+            User investigator = investigatorUser();
+
+            User otherInvestigator = new User();
+            otherInvestigator.setId(201L);
+            otherInvestigator.setRole(Role.INVESTIGATOR);
+
+            ticket.setInvestigator(otherInvestigator);
+
+            when(securityUtils.getCurrentUser()).thenReturn(investigator);
+            when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+
+            // Act
+            ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
+                    ticketService.updateTicketStatus(1L, TicketStatus.IN_PROGRESS));
+
+            // Assert
+            assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
+            verify(ticketRepository, never()).save(any());
+        }
+
     }
+
 }

@@ -132,5 +132,24 @@ class TicketServiceTest {
             verify(ticketRepository, never()).save(any());
         }
 
+        @Test
+        @DisplayName("Same status should return without changes")
+        void sameStatus_shouldReturn() {
+            //Arrange
+            Ticket ticket = openTicket();
+            User admin = adminUser();
+
+            when(securityUtils.getCurrentUser()).thenReturn(admin);
+            when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+            when(ticketMapper.entityToViewDTO(any())).thenReturn(new TicketViewDTO());
+
+            // Act
+            TicketViewDTO result = ticketService.updateTicketStatus(1L, TicketStatus.OPEN);
+
+            // Assert
+            assertNotNull(result);
+            verify(ticketRepository, never()).save(any());
+        }
+
     }
 }

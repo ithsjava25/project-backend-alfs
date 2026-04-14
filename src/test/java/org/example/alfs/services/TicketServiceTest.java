@@ -95,6 +95,43 @@ class TicketServiceTest {
     }
 
     @Nested
+    @DisplayName("checkAccess tests")
+    class CheckAccessTests {
+
+        @Test
+        @DisplayName("Admin should always have access")
+        void admin_shouldHaveAccess() {
+            // Arrange + Act
+            Ticket ticket = openTicket();
+            User admin = adminUser();
+
+            when(securityUtils.getCurrentUser()).thenReturn(admin);
+            when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+            when(ticketMapper.entityToViewDTO(any())).thenReturn(new TicketViewDTO());
+
+            // Assert
+            assertDoesNotThrow(() -> ticketService.getTicketById(1L));
+        }
+
+        @Test
+        @DisplayName("Investigator should have access if assigned")
+        void investigator_shouldHaveAccessIfAssigned() {
+            // Arrange + Act
+            Ticket ticket = openTicket();
+            User investigator = investigatorUser();
+            ticket.setInvestigator(investigator);
+
+            when(securityUtils.getCurrentUser()).thenReturn(investigator);
+            when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+            when(ticketMapper.entityToViewDTO(any())).thenReturn(new TicketViewDTO());
+
+            // Assert
+            assertDoesNotThrow(() -> ticketService.getTicketById(1L));
+        }
+
+    }
+
+    @Nested
     @DisplayName("requireCurrentUser tests")
     class RequireCurrentUserTests {
 

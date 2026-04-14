@@ -131,7 +131,7 @@ class TicketServiceTest {
 
         @Test
         @DisplayName("Unassigned investigator should not have access")
-        void unassignedInvestigator_shouldBeForbidden() {
+        void unassignedInvestigator_shouldThrowForbidden() {
             // Arrange
             Ticket ticket = openTicket();
             User investigator = investigatorUser();
@@ -169,6 +169,29 @@ class TicketServiceTest {
             assertDoesNotThrow(() -> ticketService.getTicketById(1L));
         }
 
+        @Test
+        @DisplayName("Reporter who does not own the ticket should not have access")
+        void nonOwningReporter_shouldThrowForbidden() {
+            // Arrange
+            Ticket ticket = openTicket();
+            User reporter = reporterUser();
+
+            User otherReporter = new User();
+            otherReporter.setId(301L);
+            otherReporter.setRole(Role.REPORTER);
+            ticket.setReporter(otherReporter);
+
+            when(securityUtils.getCurrentUser()).thenReturn(reporter);
+            when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+
+            // Act
+            ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
+                    ticketService.getTicketById(1L));
+
+            // Assert
+            assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
+        }
+
     }
 
     @Nested
@@ -183,8 +206,8 @@ class TicketServiceTest {
                     .thenThrow(new RuntimeException("No authenticated user in security context"));
 
             // Act
-            ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                    () -> ticketService.createNewTicket(new TicketCreateDTO()));
+            ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
+                    ticketService.createNewTicket(new TicketCreateDTO()));
 
             // Assert
             assertEquals(HttpStatus.UNAUTHORIZED, ex.getStatusCode());
@@ -198,8 +221,8 @@ class TicketServiceTest {
                     .thenThrow(new RuntimeException("Authenticated user not found in database"));
 
             // Act
-            ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                    () -> ticketService.createNewTicket(new TicketCreateDTO()));
+            ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
+                    ticketService.createNewTicket(new TicketCreateDTO()));
 
             // Assert
             assertEquals(HttpStatus.UNAUTHORIZED, ex.getStatusCode());

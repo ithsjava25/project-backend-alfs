@@ -59,14 +59,11 @@ public class TicketCommentService {
 
         checkAccess(ticket, actor);
 
-        List<TicketComment> all = ticketCommentRepository.findByTicketIdOrderByCreatedAtAsc(ticketId);
+        boolean isReporter = actor.getRole() == Role.REPORTER;
 
-        if (actor.getRole() == Role.REPORTER) {
-            return all.stream()
-                    .filter(comment -> !comment.isInternalNote())
-                    .map(ticketCommentMapper::entityToViewDTO)
-                    .toList();
-        }
+        List<TicketComment> all = isReporter
+                ? ticketCommentRepository.findByTicketIdAndInternalNoteFalseOrderByCreatedAtAsc(ticketId)
+                : ticketCommentRepository.findByTicketIdOrderByCreatedAtAsc(ticketId);
 
         return all.stream()
                 .map(ticketCommentMapper::entityToViewDTO)

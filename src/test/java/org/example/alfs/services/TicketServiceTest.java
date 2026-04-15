@@ -130,6 +130,45 @@ class TicketServiceTest {
     }
 
     @Nested
+    @DisplayName("getTicketById tests")
+    class GetTicketByIdTests {
+
+        @Test
+        @DisplayName("getTicketById should return ticket when found and access is granted")
+        void getTicketById_shouldReturnTicket_whenFound() {
+            // Arrange
+            Ticket ticket = openTicket();
+            User admin = adminUser();
+            TicketViewDTO expected = new TicketViewDTO();
+
+            when(securityUtils.getCurrentUser()).thenReturn(admin);
+            when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+            when(ticketMapper.entityToViewDTO(ticket)).thenReturn(expected);
+
+            // Act
+            TicketViewDTO result = ticketService.getTicketById(1L);
+
+            // Assert
+            assertSame(expected, result);
+            verify(ticketMapper).entityToViewDTO(ticket);
+        }
+
+        @Test
+        @DisplayName("getTicketById should throw Not Found when ticket does not exist")
+        void getTicketById_shouldThrow_whenNotFound() {
+            // Arrange
+            when(ticketRepository.findById(1L)).thenReturn(Optional.empty());
+
+            // Act
+            ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
+                    ticketService.getTicketById(1L));
+
+            // Assert
+            assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
+        }
+    }
+
+    @Nested
     @DisplayName("getTicketsByStatus tests")
     class GetTicketsByStatusTests {
 
@@ -342,7 +381,7 @@ class TicketServiceTest {
 
     @Nested
     @DisplayName("updateTicketStatus tests")
-    class updateTicketStatusTests {
+    class UpdateTicketStatusTests {
 
         @Test
         @DisplayName("Valid transition should succeed")
@@ -469,7 +508,7 @@ class TicketServiceTest {
 
     @Nested
     @DisplayName("assignInvestigator tests")
-    class assignInvestigatorTests {
+    class AssignInvestigatorTests {
 
         @Test
         @DisplayName("Assigning investigator should succeed")
@@ -573,7 +612,7 @@ class TicketServiceTest {
 
     @Nested
     @DisplayName("unassignInvestigator tests")
-    class unassignInvestigatorTests {
+    class UnassignInvestigatorTests {
 
         @Test
         @DisplayName("Unassigning investigator should succeed")

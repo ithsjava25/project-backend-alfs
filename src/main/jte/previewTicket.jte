@@ -10,6 +10,28 @@
     </div>
 
 
+    <div class="space-y-4">
+
+
+        <form method="post" action="/tickets/submit-anonymous">
+            <input type="hidden" name="title" value="${ticket.getTitle()}" />
+            <input type="hidden" name="description" value="${ticket.getDescription()}" />
+
+            <button class="bg-[#1a2b49] text-white px-4 py-2 rounded">
+                Submit anonymously
+            </button>
+        </form>
+
+        <form method="post" action="/tickets/submit-authenticated">
+            <input type="hidden" name="title" value="${ticket.getTitle()}" />
+            <input type="hidden" name="description" value="${ticket.getDescription()}" />
+
+            <button class="bg-[#1a2b49] text-white px-4 py-2 rounded">
+                Submit as logged-in user
+            </button>
+        </form>
+
+    </div>
 
 
 

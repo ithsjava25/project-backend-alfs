@@ -55,6 +55,26 @@ public class TicketController {
         return "previewTicket";
     }
 
+    //Submit ticket anonymous
+    @PostMapping("/submit-anonymous")
+    public String submitAnonymous(@ModelAttribute TicketCreateDTO dto) {
+
+        TicketViewDTO ticket = ticketService.createAnonymousTicket(dto);
+
+        return "redirect:/tickets/token/" + ticket.getToken();
+    }
+
+    //Submit ticket as logged in user
+    @PostMapping("/submit-authenticated")
+    public String submitAuthenticated(
+            @ModelAttribute TicketCreateDTO dto
+    ) {
+
+        TicketViewDTO ticket = ticketService.createNewTicket(dto);
+
+        return "redirect:/tickets/" + ticket.getId();
+    }
+
     //view ticket by token
 
     @GetMapping("/token/{token}")

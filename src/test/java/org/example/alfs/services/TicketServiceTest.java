@@ -169,6 +169,92 @@ class TicketServiceTest {
     }
 
     @Nested
+    @DisplayName("getMyTickets tests")
+    class GetMyTicketsTests {
+
+        @Test
+        @DisplayName("Should return tickets for the current reporter")
+        void getMyTickets_shouldReturnTicketsForCurrentUser() {
+            // Arrange
+            User reporter = reporterUser();
+            Ticket ticket = openTicket();
+            TicketViewDTO expected = new TicketViewDTO();
+
+            when(securityUtils.getCurrentUser()).thenReturn(reporter);
+            when(ticketRepository.findByReporterId(reporter.getId())).thenReturn(List.of(ticket));
+            when(ticketMapper.entityToViewDTO(ticket)).thenReturn(expected);
+
+            // Act
+            List<TicketViewDTO> result = ticketService.getMyTickets();
+
+            // Assert
+            assertEquals(1, result.size());
+            assertSame(expected, result.getFirst());
+            verify(ticketRepository).findByReporterId(reporter.getId());
+        }
+
+        @Test
+        @DisplayName("Should return empty list when reporter has no tickets")
+        void getMyTickets_shouldReturnEmptyList_whenNoTickets() {
+            // Arrange
+            User reporter = reporterUser();
+
+            when(securityUtils.getCurrentUser()).thenReturn(reporter);
+            when(ticketRepository.findByReporterId(reporter.getId())).thenReturn(List.of());
+
+            // Act
+            List<TicketViewDTO> result = ticketService.getMyTickets();
+
+            // Assert
+            assertTrue(result.isEmpty());
+            verify(ticketMapper, never()).entityToViewDTO(any());
+        }
+    }
+
+    @Nested
+    @DisplayName("getMyAssignedTickets tests")
+    class GetMyAssignedTickets {
+
+        @Test
+        @DisplayName("Should return tickets for the current investigator")
+        void getMyAssignedTickets_shouldReturnTicketsForCurrentUser() {
+            // Arrange
+            User investigator = investigatorUser();
+            Ticket ticket = openTicket();
+            TicketViewDTO expected = new TicketViewDTO();
+
+            when(securityUtils.getCurrentUser()).thenReturn(investigator);
+            when(ticketRepository.findByInvestigatorId(investigator.getId())).thenReturn(List.of(ticket));
+            when(ticketMapper.entityToViewDTO(ticket)).thenReturn(expected);
+
+            // Act
+            List<TicketViewDTO> result = ticketService.getMyAssignedTickets();
+
+            // Assert
+            assertEquals(1, result.size());
+            assertSame(expected, result.getFirst());
+            verify(ticketRepository).findByInvestigatorId(investigator.getId());
+        }
+
+        @Test
+        @DisplayName("Should return empty list when investigator has no tickets")
+        void getMyAssignedTickets_shouldReturnEmptyList_whenNoTickets() {
+            // Arrange
+            User investigator = investigatorUser();
+
+            when(securityUtils.getCurrentUser()).thenReturn(investigator);
+            when(ticketRepository.findByInvestigatorId(investigator.getId())).thenReturn(List.of());
+
+            // Act
+            List<TicketViewDTO> result = ticketService.getMyAssignedTickets();
+
+            // Assert
+            assertTrue(result.isEmpty());
+            verify(ticketMapper, never()).entityToViewDTO(any());
+        }
+    }
+
+    @Nested
     @DisplayName("getTicketsByStatus tests")
     class GetTicketsByStatusTests {
 

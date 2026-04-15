@@ -43,7 +43,7 @@ public class SecurityConfig {
                         .requestMatchers("/auth/signup").permitAll()
                         .requestMatchers("/auth/hash").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()
-                        .requestMatchers("/startPage").permitAll()
+                        .requestMatchers("/startPage", "/").permitAll()
 
                         //allow access to endpoints during development
                         .requestMatchers("/create", "/tickets/**", "/view/**").permitAll()

@@ -26,11 +26,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         this.userRepository = userRepository;
     }
 
-    // Skips filter for LOGIN & H2
+    // Skips filter for LOGIN & H2 & START PAGE
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
-        return path.startsWith("/auth") || path.startsWith("/h2-console");
+        return path.startsWith("/auth") || path.startsWith("/h2-console") || path.startsWith("/startPage");
     }
 
 

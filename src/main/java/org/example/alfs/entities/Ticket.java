@@ -47,8 +47,6 @@ public class Ticket {
     public void prePersist() {
         createdAt = LocalDateTime.now();
         if (status == null) status = TicketStatus.OPEN;
-        if (reporterToken == null || reporterToken.isBlank())
-            reporterToken = UUID.randomUUID().toString(); // Skapa token för anonyma anmälare
     }
 
     @PreUpdate

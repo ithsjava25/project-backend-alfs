@@ -36,21 +36,18 @@ public class TicketCommentService {
         Ticket ticket = ticketRepository.findById(ticketId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
 
+        boolean internalNote = dto.isInternalNote();
+
         checkAccess(ticket, author);
+        checkInternalNotePermission(internalNote, author);
 
         TicketComment comment = new TicketComment();
         comment.setTicket(ticket);
         comment.setAuthor(author);
         comment.setMessage(dto.getMessage());
-
-        boolean internalNote = dto.isInternalNote();
-        if (internalNote && (author == null || (author.getRole() != Role.ADMIN && author.getRole() != Role.INVESTIGATOR))) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only investigators/admins can create internal notes");
-        }
         comment.setInternalNote(internalNote);
 
         TicketComment savedComment = ticketCommentRepository.save(comment);
-
         return ticketCommentMapper.entityToViewDTO(savedComment);
     }
 
@@ -62,8 +59,7 @@ public class TicketCommentService {
 
         checkAccess(ticket, actor);
 
-        List<TicketComment> all =
-                ticketCommentRepository.findByTicketIdOrderByCreatedAtAsc(ticketId);
+        List<TicketComment> all = ticketCommentRepository.findByTicketIdOrderByCreatedAtAsc(ticketId);
 
         if (actor.getRole() == Role.REPORTER) {
             return all.stream()
@@ -77,13 +73,13 @@ public class TicketCommentService {
                 .toList();
     }
 
-
     // helpers
     private void checkAccess(Ticket ticket, User user) {
 
         // If no user (anonymous) → deny access for now. Will be fixed later.
         if (user == null) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required");
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED, "Authentication required");
         }
 
         if (user.getRole() == Role.ADMIN) return;
@@ -102,6 +98,16 @@ public class TicketCommentService {
             }
         }
 
-        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
+        throw new ResponseStatusException(
+                HttpStatus.FORBIDDEN, "Access denied");
+    }
+
+    private void checkInternalNotePermission(boolean internalNote, User author) {
+        if (!internalNote) return;
+
+        if (author == null || (author.getRole() != Role.ADMIN && author.getRole() != Role.INVESTIGATOR)) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN, "Only investigators/admins can create internal notes");
+        }
     }
 }

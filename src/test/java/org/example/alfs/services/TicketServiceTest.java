@@ -126,6 +126,53 @@ class TicketServiceTest {
     }
 
     @Nested
+    @DisplayName("getTicketsByStatusAndInvestigator tests")
+    class getTicketsByStatusAndInvestigatorTests {
+
+        @Test
+        @DisplayName("Admin can filter any investigator's tickets")
+        void admin_canFilterAnyInvestigator() {
+            // Arrange + Act
+            User admin = adminUser();
+
+            when(securityUtils.getCurrentUser()).thenReturn(admin);
+            when(ticketRepository.findByStatusAndInvestigatorId(any(), any())).thenReturn(List.of());
+
+            // Assert
+            assertDoesNotThrow(() -> ticketService.getTicketsByStatusAndInvestigator(TicketStatus.OPEN, 200L));
+        }
+
+        @Test
+        @DisplayName("Investigator can filter their own tickets")
+        void investigator_canFilterOwnTickets() {
+            // Arrange + Act
+            User investigator = investigatorUser();
+
+            when(securityUtils.getCurrentUser()).thenReturn(investigator);
+            when(ticketRepository.findByStatusAndInvestigatorId(any(), any())).thenReturn(List.of());
+
+            // Assert
+            assertDoesNotThrow(() -> ticketService.getTicketsByStatusAndInvestigator(TicketStatus.IN_PROGRESS, 200L));
+        }
+
+        @Test
+        @DisplayName("Investigator cannot filter other investigator's tickets")
+        void investigator_cannotFilterOthersTickets() {
+            // Arrange
+            User investigator = investigatorUser();
+
+            when(securityUtils.getCurrentUser()).thenReturn(investigator);
+
+            // Act
+            ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
+                    ticketService.getTicketsByStatusAndInvestigator(TicketStatus.IN_PROGRESS, 201L));
+
+            // Assert
+            assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
+        }
+    }
+
+    @Nested
     @DisplayName("checkAccess tests")
     class CheckAccessTests {
 

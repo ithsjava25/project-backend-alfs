@@ -21,13 +21,17 @@
 <!-- HEADER -->
 <header class="bg-[#1a2b49] text-white py-6 px-4 header-border">
     <div class="max-w-5xl mx-auto flex justify-between items-center">
-        <h1 class="text-xl font-bold uppercase">
-            ALFS
-            whistleblower system
-        </h1>
+        <a href="/" class="hover:opacity-80 transition">
+            <h1 class="text-xl font-bold uppercase">
+                ALFS
+                whistleblower system
+            </h1>
+        </a>
+
+
 
         <nav class="space-x-6 text-sm">
-            <a href="/" class="hover:text-[#b39359]">Home</a>
+            <a href="/home" class="hover:text-[#b39359]">Home</a>
             <a href="/tickets/create" class="hover:text-[#b39359]">Report</a>
             <a href="/login" class="hover:text-[#b39359]">Sign in</a>
         </nav>

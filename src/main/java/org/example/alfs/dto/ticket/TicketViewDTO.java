@@ -17,6 +17,7 @@ import java.time.LocalDateTime;
 public class TicketViewDTO {
 
     private Long id;
+    private String token;
     private String title;
     private String description;
     private TicketStatus status;

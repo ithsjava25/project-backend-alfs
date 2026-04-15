@@ -96,8 +96,42 @@ class TicketServiceTest {
     }
 
     @Nested
+    @DisplayName("getTicketByToken tests")
+    class GetTicketByTokenTests {
+
+        @Test
+        @DisplayName("Valid token should return ticket")
+        void getTicketByToken_shouldReturnTicket() {
+            // Arrange
+            Ticket ticket = new Ticket();
+            String token = "valid-token";
+
+            when(ticketRepository.findByReporterToken(token)).thenReturn(Optional.of(ticket));
+            when(ticketMapper.entityToViewDTO(any())).thenReturn(new TicketViewDTO());
+
+            // Act + Assert
+            assertDoesNotThrow(() -> ticketService.getTicketByToken(token));
+            verify(ticketMapper).entityToViewDTO(ticket);
+        }
+
+        @Test
+        @DisplayName("Invalid token should throw Not found")
+        void getTicketByToken_invalidToken_shouldThrowNotFound() {
+            // Arrange
+            when(ticketRepository.findByReporterToken(any())).thenReturn(Optional.empty());
+
+            // Act
+            ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
+                    ticketService.getTicketByToken("invalid-token"));
+
+            // Assert
+            assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
+        }
+    }
+
+    @Nested
     @DisplayName("getTicketsByStatus tests")
-    class getTicketsByStatusTests {
+    class GetTicketsByStatusTests {
 
         @Test
         @DisplayName("Admin can get tickets by status")
@@ -127,7 +161,7 @@ class TicketServiceTest {
 
     @Nested
     @DisplayName("getTicketsByStatusAndInvestigator tests")
-    class getTicketsByStatusAndInvestigatorTests {
+    class GetTicketsByStatusAndInvestigatorTests {
 
         @Test
         @DisplayName("Admin can filter any investigator's tickets")

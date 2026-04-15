@@ -329,6 +329,22 @@ class TicketServiceTest {
             // Assert
             assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
         }
+
+        @Test
+        @DisplayName("Reporter should be forbidden from filtering by investigator ID")
+        void reporter_cannotFilterTickets_byInvestigatorId() {
+            // Arrange
+            User reporter = reporterUser();
+
+            when(securityUtils.getCurrentUser()).thenReturn(reporter);
+
+            // Act
+            ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
+                    ticketService.getTicketsByStatusAndInvestigator(TicketStatus.IN_PROGRESS, 200L));
+
+            // Assert
+            assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
+        }
     }
 
     @Nested

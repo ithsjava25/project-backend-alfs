@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
 //TODO: Decide final routes and redirects
 
 @Controller
-@RequestMapping
+@RequestMapping("/tickets")
 public class TicketController {
 
     private final TicketService ticketService;
@@ -34,23 +34,23 @@ public class TicketController {
         return "create";
     }
 
-    //TODO REDIRECT, WHERE??
     @PreAuthorize("hasRole('REPORTER')") // should change later for anonymous access
     @PostMapping("/create")
-    public String createNewTicket(@ModelAttribute("ticket") @Valid TicketCreateDTO ticketCreateDTO,  BindingResult bindingResult) {
+    public String createNewTicket(@ModelAttribute("ticket") @Valid TicketCreateDTO ticketCreateDTO,  BindingResult bindingResult, Model model) {
         if (bindingResult.hasErrors()) {
+            model.addAttribute("ticket", ticketCreateDTO);
             return "create";
         }
 
-        ticketService.createNewTicket(ticketCreateDTO);
+        TicketViewDTO ticket = ticketService.createNewTicket(ticketCreateDTO);
 
-        return "redirect:/home";
+        return "redirect:/tickets/" + ticket.getId();
 
     }
 
     //view ticket by token
-    //TODO, FIX SO ANONYMOUS USERS CAN USE
-    @GetMapping("/view/token/{token}")
+
+    @GetMapping("/token/{token}")
     public String viewTicketByToken(@PathVariable String token, Model model) {
 
         TicketViewDTO ticket = ticketService.getTicketByToken(token);
@@ -61,7 +61,7 @@ public class TicketController {
 
     //view ticket by id
     @PreAuthorize("hasAnyRole('ADMIN','INVESTIGATOR','REPORTER')")
-    @GetMapping("/view/id/{id}")
+    @GetMapping("/{id}")
     public String viewTicketById(@PathVariable Long id, Model model) {
 
         TicketViewDTO ticket = ticketService.getTicketById(id);
@@ -78,7 +78,7 @@ public class TicketController {
 
         ticketService.assignInvestigator(id, dto.getInvestigatorId());
 
-        return "redirect:/view/id/" + id;
+        return "redirect:/tickets/" + id;
     }
 
     //update status
@@ -88,7 +88,7 @@ public class TicketController {
 
         ticketService.updateTicketStatus(id, dto.getStatus());
 
-        return "redirect:/view/id/" + id;
+        return "redirect:/tickets/" + id;
     }
 
 

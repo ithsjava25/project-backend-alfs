@@ -3,7 +3,7 @@
 @template.layout(title = "Create Ticket", content = @`
     <h1 class="text-2xl font-bold mb-6">Create Ticket</h1>
 
-    <form method="post" action="/tickets/create" class="space-y-4">
+    <form method="post" action="/tickets/previewTicket" class="space-y-4">
         <input type="text"
                name="title"
                value="${ticket.getTitle()}"

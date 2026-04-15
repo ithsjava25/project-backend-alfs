@@ -1,3 +1,5 @@
+@template.layout(title = "Login", content = @`
+
 <h1>Login</h1>
 
 <form method="post" action="/login-form">
@@ -13,3 +15,5 @@
 
     <button type="submit">Login</button>
 </form>
+
+`)

@@ -20,6 +20,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -92,6 +93,36 @@ class TicketServiceTest {
                         ticket.getTitle().equals("Test Ticket") &&
                         ticket.getDescription().equals("This is a test ticket")
         ));
+    }
+
+    @Nested
+    @DisplayName("getTicketsByStatus tests")
+    class getTicketsByStatusTests {
+
+        @Test
+        @DisplayName("Admin can get tickets by status")
+        void admin_canGetTicketsByStatus() {
+            // Arrange + Act
+            when(securityUtils.getCurrentUser()).thenReturn(adminUser());
+            when(ticketRepository.findByStatus(TicketStatus.OPEN)).thenReturn(List.of());
+
+            // Assert
+            assertDoesNotThrow(() -> ticketService.getTicketsByStatus(TicketStatus.OPEN));
+        }
+
+        @Test
+        @DisplayName("Non-admin cannot get tickets by status")
+        void nonAdmin_cannotGetTicketsByStatus() {
+            // Arrange
+            when(securityUtils.getCurrentUser()).thenReturn(investigatorUser());
+
+            // Act
+            ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
+                    ticketService.getTicketsByStatus(TicketStatus.OPEN));
+
+            // Assert
+            assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
+        }
     }
 
     @Nested
@@ -191,7 +222,6 @@ class TicketServiceTest {
             // Assert
             assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
         }
-
     }
 
     @Nested
@@ -227,7 +257,6 @@ class TicketServiceTest {
             // Assert
             assertEquals(HttpStatus.UNAUTHORIZED, ex.getStatusCode());
         }
-
     }
 
     @Nested
@@ -355,7 +384,6 @@ class TicketServiceTest {
             assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
             verify(ticketRepository, never()).save(any());
         }
-
     }
 
     @Nested

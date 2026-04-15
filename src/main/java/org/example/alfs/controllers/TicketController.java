@@ -27,14 +27,14 @@ public class TicketController {
     }
 
     //create ticket
-    @PreAuthorize("hasRole('REPORTER')") // should change later for anonymous access
+    //@PreAuthorize("hasRole('REPORTER')") // should change later for anonymous access
     @GetMapping("/create")
     public String createNewTicketForm(Model model) {
         model.addAttribute("ticket", new TicketCreateDTO());
         return "create";
     }
 
-    @PreAuthorize("hasRole('REPORTER')") // should change later for anonymous access
+    //@PreAuthorize("hasRole('REPORTER')") // should change later for anonymous access
     @PostMapping("/create")
     public String createNewTicket(@ModelAttribute("ticket") @Valid TicketCreateDTO ticketCreateDTO,  BindingResult bindingResult, Model model) {
         if (bindingResult.hasErrors()) {
@@ -46,6 +46,13 @@ public class TicketController {
 
         return "redirect:/tickets/" + ticket.getId();
 
+    }
+    //Preview ticket
+    @PostMapping("/previewTicket")
+    public String previewTicket(@ModelAttribute("ticket") TicketCreateDTO dto, Model model) {
+
+        model.addAttribute("ticket", dto);
+        return "previewTicket";
     }
 
     //view ticket by token

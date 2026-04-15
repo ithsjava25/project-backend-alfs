@@ -12,4 +12,7 @@ public interface TicketCommentRepository extends JpaRepository<TicketComment, Lo
 
     // Ladda interna meddelanden för utredare/admins, äldst först
     List<TicketComment> findByTicketIdAndInternalNoteOrderByCreatedAtAsc(Long ticketId, boolean isInternalNote);
+
+    // Ladda kommentarer men utelämna interna meddelanden, äldst först
+    List<TicketComment> findByTicketIdAndInternalNoteFalseOrderByCreatedAtAsc(Long ticketId);
 }

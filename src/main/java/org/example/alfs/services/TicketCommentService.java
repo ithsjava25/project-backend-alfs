@@ -36,40 +36,75 @@ public class TicketCommentService {
         Ticket ticket = ticketRepository.findById(ticketId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
 
+        boolean internalNote = dto.isInternalNote();
+
+        checkAccess(ticket, author);
+        checkInternalNotePermission(internalNote, author);
+
         TicketComment comment = new TicketComment();
         comment.setTicket(ticket);
         comment.setAuthor(author);
         comment.setMessage(dto.getMessage());
-
-        boolean internalNote = dto.isInternalNote();
-        if (internalNote && (author == null || (author.getRole() != Role.ADMIN && author.getRole() != Role.INVESTIGATOR))) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only investigators/admins can create internal notes");
-        }
         comment.setInternalNote(internalNote);
 
         TicketComment savedComment = ticketCommentRepository.save(comment);
-
         return ticketCommentMapper.entityToViewDTO(savedComment);
     }
 
     @Transactional(readOnly = true)
     public List<CommentViewDTO> getComments(Long ticketId, User actor) {
-        List<TicketComment> all = ticketCommentRepository.findByTicketIdOrderByCreatedAtAsc(ticketId);
 
-        if (all.isEmpty()) {
-            ticketRepository.findById(ticketId)
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
-        }
+        Ticket ticket = ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
 
-        if (actor == null || actor.getRole() == Role.REPORTER) {
-            return all.stream()
-                    .filter(comment -> !comment.isInternalNote())
-                    .map(ticketCommentMapper::entityToViewDTO)
-                    .toList();
-        }
+        checkAccess(ticket, actor);
+
+        boolean isReporter = actor.getRole() == Role.REPORTER;
+
+        List<TicketComment> all = isReporter
+                ? ticketCommentRepository.findByTicketIdAndInternalNoteFalseOrderByCreatedAtAsc(ticketId)
+                : ticketCommentRepository.findByTicketIdOrderByCreatedAtAsc(ticketId);
 
         return all.stream()
                 .map(ticketCommentMapper::entityToViewDTO)
                 .toList();
+    }
+
+    // helpers
+    private void checkAccess(Ticket ticket, User user) {
+
+        // If no user (anonymous) → deny access for now. Will be fixed later.
+        if (user == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED, "Authentication required");
+        }
+
+        if (user.getRole() == Role.ADMIN) return;
+
+        if (user.getRole() == Role.INVESTIGATOR) {
+            if (ticket.getInvestigator() != null &&
+                    ticket.getInvestigator().getId().equals(user.getId())) {
+                return;
+            }
+        }
+
+        if (user.getRole() == Role.REPORTER) {
+            if (ticket.getReporter() != null &&
+                    ticket.getReporter().getId().equals(user.getId())) {
+                return;
+            }
+        }
+
+        throw new ResponseStatusException(
+                HttpStatus.FORBIDDEN, "Access denied");
+    }
+
+    private void checkInternalNotePermission(boolean internalNote, User author) {
+        if (!internalNote) return;
+
+        if (author == null || (author.getRole() != Role.ADMIN && author.getRole() != Role.INVESTIGATOR)) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN, "Only investigators/admins can create internal notes");
+        }
     }
 }

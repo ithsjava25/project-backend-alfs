@@ -53,6 +53,29 @@ public class TicketService {
         return ticketMapper.entityToViewDTO(savedTicket);
     }
 
+    //Create anonymous ticket
+    // This token is currently stored in plain text for simplicity.
+    //todo hash token
+    public TicketViewDTO createAnonymousTicket(TicketCreateDTO dto) {
+
+        Ticket ticket = new Ticket();
+
+        ticket.setTitle(dto.getTitle());
+        ticket.setDescription(dto.getDescription());
+
+        String rawToken = java.util.UUID.randomUUID().toString();
+
+        ticket.setReporterToken(rawToken);
+
+        Ticket saved = ticketRepository.save(ticket);
+
+        TicketViewDTO view = ticketMapper.entityToViewDTO(saved);
+
+        view.setToken(rawToken);
+
+        return view;
+    }
+
     // View by token
     public TicketViewDTO getTicketByToken(String token) {
         Ticket ticket = ticketRepository.findByReporterToken(token)

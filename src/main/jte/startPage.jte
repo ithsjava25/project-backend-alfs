@@ -19,7 +19,7 @@
 
             <div class="p-4 border-l-4 border-[#b39359] bg-gray-50">
                 <h3 class="font-bold text-sm uppercase text-gray-600 mb-2">High security</h3>
-                <p class="text-sm">This system is super secure</p>
+                <p class="text-sm">This system is designed to protect your confidentiality and report integrity.</p>
             </div>
 
             <div class="p-4 border-l-4 border-[#b39359] bg-gray-50">

@@ -71,28 +71,60 @@ class TicketServiceTest {
         return u;
     }
 
-    @Test
-    @DisplayName("createNewTicket should set reporter as user")
-    void createNewTicket_shouldSetReporterAsUser() {
-        // Arrange
-        TicketCreateDTO dto = new TicketCreateDTO();
-        dto.setTitle("Test Ticket");
-        dto.setDescription("This is a test ticket");
-        User reporter = reporterUser();
+    @Nested
+    @DisplayName("createNewTicket tests")
+    class CreateNewTicketTests {
 
-        when(securityUtils.getCurrentUser()).thenReturn(reporter);
-        when(ticketRepository.save(any())).thenAnswer(i -> i.getArgument(0));
-        when(ticketMapper.entityToViewDTO(any())).thenReturn(new TicketViewDTO());
+        @Test
+        @DisplayName("createNewTicket should set reporter as user")
+        void createNewTicket_shouldSetReporterAsUser() {
+            // Arrange
+            TicketCreateDTO dto = new TicketCreateDTO();
+            dto.setTitle("Test Ticket");
+            dto.setDescription("This is a test ticket");
+            User reporter = reporterUser();
 
-        // Act
-        ticketService.createNewTicket(dto);
+            TicketViewDTO viewDTO = new TicketViewDTO();
 
-        // Assert
-        verify(ticketRepository).save(argThat(ticket ->
-                ticket.getReporter().equals(reporter) &&
-                        ticket.getTitle().equals("Test Ticket") &&
-                        ticket.getDescription().equals("This is a test ticket")
-        ));
+            when(securityUtils.getCurrentUserOrNull()).thenReturn(reporter);
+            when(ticketRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+            when(ticketMapper.entityToViewDTO(any())).thenReturn(viewDTO);
+
+            // Act
+            ticketService.createNewTicket(dto);
+
+            // Assert
+            verify(ticketRepository).save(argThat(ticket ->
+                    reporter.equals(ticket.getReporter()) &&
+                            "Test Ticket".equals(ticket.getTitle()) &&
+                            "This is a test ticket".equals(ticket.getDescription())
+            ));
+        }
+
+        @Test
+        @DisplayName("createNewTicket should set reporter token when user is not authenticated")
+        void createNewTicket_shouldSetReporterToken_whenAnonymous() {
+            // Arrange
+            TicketCreateDTO dto = new TicketCreateDTO();
+            dto.setTitle("Anonymous Ticket");
+            dto.setDescription("Filed anonymously");
+
+            TicketViewDTO viewDTO = new TicketViewDTO();
+
+            when(securityUtils.getCurrentUserOrNull()).thenReturn(null);
+            when(ticketRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+            when(ticketMapper.entityToViewDTO(any())).thenReturn(viewDTO);
+
+            // Act
+            TicketViewDTO result = ticketService.createNewTicket(dto);
+
+            // Assert
+            verify(ticketRepository).save(argThat(ticket ->
+                    ticket.getReporter() == null &&
+                            ticket.getReporterToken() != null
+            ));
+            assertNotNull(result.getToken());
+        }
     }
 
     @Nested

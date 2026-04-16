@@ -2,7 +2,7 @@ package org.example.alfs.dto.ticket;
 
 import lombok.Data;
 import org.example.alfs.enums.TicketStatus;
-
+import java.time.format.DateTimeFormatter;
 import java.time.LocalDateTime;
 
 /*
@@ -17,10 +17,17 @@ import java.time.LocalDateTime;
 public class TicketViewDTO {
 
     private Long id;
+    private String token;
     private String title;
     private String description;
     private TicketStatus status;
     private LocalDateTime createdAt;
 
     private Long assignedInvestigatorId;
+
+    public String getFormattedCreatedAt() {
+        if (createdAt == null) return "";
+
+        return createdAt.format(DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm"));
+    }
 }

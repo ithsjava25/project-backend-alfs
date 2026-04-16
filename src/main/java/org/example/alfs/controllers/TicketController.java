@@ -1,5 +1,7 @@
 package org.example.alfs.controllers;
-
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import jakarta.validation.Valid;
 import org.example.alfs.dto.ticket.TicketAssignDTO;
 import org.example.alfs.dto.ticket.TicketCreateDTO;
@@ -27,36 +29,56 @@ public class TicketController {
     }
 
     //create ticket
-    @PreAuthorize("hasRole('REPORTER')") // should change later for anonymous access
+    //@PreAuthorize("hasRole('REPORTER')") // should change later for anonymous access
     @GetMapping("/create")
     public String createNewTicketForm(Model model) {
         model.addAttribute("ticket", new TicketCreateDTO());
         return "create";
     }
 
-    @PreAuthorize("hasRole('REPORTER')") // should change later for anonymous access
+    //@PreAuthorize("hasRole('REPORTER')") // should change later for anonymous access
     @PostMapping("/create")
-    public String createNewTicket(@ModelAttribute("ticket") @Valid TicketCreateDTO ticketCreateDTO,  BindingResult bindingResult, Model model) {
+    public String createNewTicket(
+            @ModelAttribute("ticket") @Valid TicketCreateDTO dto,
+            BindingResult bindingResult,
+            Model model,
+            RedirectAttributes redirectAttributes
+    ) {
         if (bindingResult.hasErrors()) {
-            model.addAttribute("ticket", ticketCreateDTO);
+            model.addAttribute("ticket", dto);
             return "create";
         }
 
-        TicketViewDTO ticket = ticketService.createNewTicket(ticketCreateDTO);
+        TicketViewDTO ticket = ticketService.createNewTicket(dto);
+        redirectAttributes.addFlashAttribute("success", "Ticket created successfully");
+
+        if (ticket.getToken() != null) {
+            return "redirect:/tickets/ticket-created?token=" + ticket.getToken();
+        }
 
         return "redirect:/tickets/" + ticket.getId();
-
     }
 
-    //view ticket by token
 
+
+
+    //view ticket by token
     @GetMapping("/token/{token}")
     public String viewTicketByToken(@PathVariable String token, Model model) {
 
-        TicketViewDTO ticket = ticketService.getTicketByToken(token);
-        model.addAttribute("ticket", ticket);
+        try {
+            TicketViewDTO ticket = ticketService.getTicketByToken(token);
+            model.addAttribute("ticket", ticket);
+            return "view";
 
-        return "view";
+        } catch (ResponseStatusException ex) {
+
+            if (ex.getStatusCode() == HttpStatus.NOT_FOUND) {
+                return "redirect:/login?tokenError=true";
+            }
+
+            throw ex;
+        }
     }
 
     //view ticket by id
@@ -106,6 +128,13 @@ public class TicketController {
 
         model.addAttribute("tickets", ticketService.getMyAssignedTickets());
         return "assigned-tickets";
+    }
+
+
+    @GetMapping("/ticket-created")
+    public String ticketCreated(@RequestParam String token, Model model) {
+        model.addAttribute("token", token);
+        return "ticket-created";
     }
 
     //create comment

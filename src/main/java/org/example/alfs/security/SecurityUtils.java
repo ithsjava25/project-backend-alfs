@@ -27,4 +27,23 @@ public class SecurityUtils {
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Authenticated user not found in database"));
     }
+
+    public User getCurrentUserOrNull() {
+        try {
+            return getCurrentUser();
+        } catch (RuntimeException ex) {
+
+            String message = ex.getMessage();
+
+            boolean authFailure =
+                    "No authenticated user in security context".equals(message) ||
+                            "Authenticated user not found in database".equals(message);
+
+            if (authFailure) {
+                return null;
+            }
+
+            throw ex;
+        }
+    }
 }

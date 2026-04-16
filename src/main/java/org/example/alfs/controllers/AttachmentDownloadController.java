@@ -84,32 +84,43 @@ public class AttachmentDownloadController {
     }
 
     @GetMapping("/{id}/presigned")
-    @PreAuthorize("hasAnyRole('ADMIN','INVESTIGATOR')")
-    public ResponseEntity<PresignedUrlDTO> presigned(@PathVariable Long id) {
+    @PreAuthorize("permitAll()")
+    public ResponseEntity<PresignedUrlDTO> presigned(@PathVariable Long id,
+                                                     @org.springframework.web.bind.annotation.RequestParam(name = "reporterToken", required = false)
+                                                     String reporterToken) {
         Attachment att = attachmentRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Attachment not found: " + id));
 
-        // Ägarskaps-/behörighetskontroll på ticket-nivå
-        User current = securityUtils.getCurrentUser();
         Ticket ticket = att.getTicket();
-        if (current.getRole() != Role.ADMIN) {
-            // Endast INVESTIGATOR som är tilldelad denna ticket tillåts i detta steg
-            if (current.getRole() == Role.INVESTIGATOR) {
-                if (ticket == null || ticket.getInvestigator() == null ||
-                        !ticket.getInvestigator().getId().equals(current.getId())) {
+
+        // 1) Om reporterToken skickas in: tillåt anonym åtkomst om token matchar ticketens reporterToken
+        boolean accessedViaReporterToken = false;
+        if (reporterToken != null && !reporterToken.isBlank()) {
+            if (ticket == null || ticket.getReporterToken() == null || !ticket.getReporterToken().equals(reporterToken)) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid reporterToken for this attachment");
+            }
+            accessedViaReporterToken = true;
+        } else {
+            // 2) Annars krävs inloggning: ADMIN eller INVESTIGATOR tilldelad ärendet
+            User current = securityUtils.getCurrentUser();
+            if (current.getRole() != Role.ADMIN) {
+                if (current.getRole() == Role.INVESTIGATOR) {
+                    if (ticket == null || ticket.getInvestigator() == null ||
+                            !ticket.getInvestigator().getId().equals(current.getId())) {
+                        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not allowed to access this attachment");
+                    }
+                } else {
                     throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not allowed to access this attachment");
                 }
-            } else {
-                // Andra roller nekas i detta steg
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not allowed to access this attachment");
             }
         }
 
         try {
             String url = storageService.createPresignedGetUrl(att.getS3Key(), java.time.Duration.ofMinutes(10));
             // Auditlogga generering av presigned URL som nedladdningshändelse
-            if (att.getTicket() != null) {
-                auditService.log(AuditAction.ATTACHMENT_DOWNLOADED, "attachments", null, "attachmentId:" + att.getId(), att.getTicket());
+            if (ticket != null) {
+                String newVal = "attachmentId:" + att.getId() + (accessedViaReporterToken ? ",via:reporterToken" : ",via:authenticated");
+                auditService.log(AuditAction.ATTACHMENT_DOWNLOADED, "attachments", null, newVal, ticket);
             }
             return ResponseEntity.ok(new PresignedUrlDTO(url));
         } catch (Exception ex) {

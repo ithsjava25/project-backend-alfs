@@ -1,6 +1,6 @@
 package org.example.alfs.controllers;
 
-import jakarta.servlet.http.Cookie;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.example.alfs.dto.auth.SignupRequestDTO;
@@ -8,10 +8,14 @@ import org.example.alfs.entities.User;
 import org.example.alfs.security.JwtService;
 import org.example.alfs.services.AuthService;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
+
+import java.time.Duration;
 
 /**
  * Handles login for the browser (UI).
@@ -32,8 +36,10 @@ public class AuthViewController {
     }
 
     @GetMapping("/login")
-    public String loginPage() {
-        return "login"; // login.jte
+    public String loginPage(@RequestParam(required = false) String error, @RequestParam(required = false) String tokenError, Model model) {
+        model.addAttribute("error", error);
+        model.addAttribute("tokenError", tokenError);
+        return "login";
     }
 
     @GetMapping("/signup")
@@ -61,21 +67,25 @@ public class AuthViewController {
     public String loginForm(
             @RequestParam String username,
             @RequestParam String password,
-            HttpServletResponse response
+            HttpServletResponse response,
+            RedirectAttributes redirectAttributes
     ) {
         try {
             User user = authService.login(username, password);
 
             String token = jwtService.generateToken(user);
 
-            Cookie cookie = new Cookie("JWT", token);
-            cookie.setHttpOnly(true);
-            cookie.setPath("/");
-            cookie.setMaxAge(60 * 60 * 24);
+            ResponseCookie cookie = ResponseCookie.from("JWT", token)
+                    .httpOnly(true)
+                    .path("/")
+                    .maxAge(Duration.ofDays(1))
+                    .sameSite("Lax")
+                    .build();
 
-            response.addCookie(cookie);
+            response.addHeader("Set-Cookie", cookie.toString());
 
-            return "redirect:/api/hello"; // should change later
+            redirectAttributes.addFlashAttribute("success", "You are signed in!");
+            return "redirect:/";
 
         } catch (ResponseStatusException ex) {
 
@@ -89,16 +99,18 @@ public class AuthViewController {
         }
     }
 
-    @PostMapping("/logout")
-    public String logout(HttpServletResponse response) {
+    @PostMapping("/auth/logout")
+    public String logout(HttpServletResponse response, RedirectAttributes redirectAttributes) {
 
-        Cookie cookie = new Cookie("JWT", null);
-        cookie.setHttpOnly(true);
-        cookie.setPath("/");
-        cookie.setMaxAge(0);
+        ResponseCookie cookie = ResponseCookie.from("JWT", "")
+                .httpOnly(true)
+                .path("/")
+                .maxAge(Duration.ZERO)
+                .sameSite("Lax")
+                .build();
 
-        response.addCookie(cookie);
-
-        return "redirect:/login";
+        response.addHeader("Set-Cookie", cookie.toString());
+        redirectAttributes.addFlashAttribute("success", "Successfully signed out");
+        return "redirect:/";
     }
 }

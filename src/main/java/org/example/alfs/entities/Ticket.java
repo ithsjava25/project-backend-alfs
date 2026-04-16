@@ -36,7 +36,7 @@ public class Ticket {
     @Column(nullable = false, length = 32)
     private TicketStatus status;
 
-    @Column(nullable = false, unique = true, length = 128, updatable = false)
+    @Column(nullable = true, unique = true, length = 128, updatable = false)
     private String reporterToken;
 
     private LocalDateTime createdAt;

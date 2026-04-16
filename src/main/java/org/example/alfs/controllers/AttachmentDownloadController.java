@@ -7,6 +7,10 @@ import org.example.alfs.repositories.AttachmentRepository;
 import org.example.alfs.services.AuditService;
 import org.example.alfs.enums.AuditAction;
 import org.example.alfs.services.storage.MinioStorageService;
+import org.example.alfs.security.SecurityUtils;
+import org.example.alfs.entities.Ticket;
+import org.example.alfs.entities.User;
+import org.example.alfs.enums.Role;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.ContentDisposition;
@@ -30,13 +34,16 @@ public class AttachmentDownloadController {
     private final AttachmentRepository attachmentRepository;
     private final MinioStorageService storageService;
     private final AuditService auditService;
+    private final SecurityUtils securityUtils;
 
     public AttachmentDownloadController(AttachmentRepository attachmentRepository,
                                         MinioStorageService storageService,
-                                        AuditService auditService) {
+                                        AuditService auditService,
+                                        SecurityUtils securityUtils) {
         this.attachmentRepository = attachmentRepository;
         this.storageService = storageService;
         this.auditService = auditService;
+        this.securityUtils = securityUtils;
     }
 
     @GetMapping("/{id}/download")
@@ -81,6 +88,22 @@ public class AttachmentDownloadController {
     public ResponseEntity<PresignedUrlDTO> presigned(@PathVariable Long id) {
         Attachment att = attachmentRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Attachment not found: " + id));
+
+        // Ägarskaps-/behörighetskontroll på ticket-nivå
+        User current = securityUtils.getCurrentUser();
+        Ticket ticket = att.getTicket();
+        if (current.getRole() != Role.ADMIN) {
+            // Endast INVESTIGATOR som är tilldelad denna ticket tillåts i detta steg
+            if (current.getRole() == Role.INVESTIGATOR) {
+                if (ticket == null || ticket.getInvestigator() == null ||
+                        !ticket.getInvestigator().getId().equals(current.getId())) {
+                    throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not allowed to access this attachment");
+                }
+            } else {
+                // Andra roller nekas i detta steg
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not allowed to access this attachment");
+            }
+        }
 
         try {
             String url = storageService.createPresignedGetUrl(att.getS3Key(), java.time.Duration.ofMinutes(10));

@@ -1,4 +1,6 @@
+@param String success
 @template.layout(title = "Start Page", content = @`
+
 
     <div class="max-w-5xl mx-auto space-y-10">
 
@@ -49,4 +51,4 @@
 
     </div>
 
-`)
+`, success = success)

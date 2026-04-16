@@ -107,15 +107,8 @@
 
 <script>
     const toast = document.getElementById("toast");
-    const bar = document.getElementById("toast-bar");
 
-    if (toast && bar) {
-
-        // Animate progress bar (3 sec)
-        bar.style.transition = "width 5s linear";
-        bar.style.width = "0%";
-
-        // Fade out after 3 sec
+    if (toast) {
         setTimeout(() => {
             toast.style.transition = "opacity 0.5s ease";
             toast.style.opacity = "0";

@@ -1,11 +1,11 @@
-
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap');
 :root {
     --state-blue: #1a2b49;
     --state-gold: #b39359;
     --state-gray: #f4f4f4;
 }
 body {
-    font-family: Georgia, serif;
+    font-family: "Roboto", sans-serif;
     background-color: var(--state-gray);
     color: #333;
 }
@@ -24,4 +24,12 @@ body {
     background: white;
     border: 1px solid #ddd;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+@keyframes toastProgress {
+    from { width: 100%; }
+    to { width: 0%; }
+}
+
+.animate-toast {
+    animation: toastProgress 3s linear forwards;
 }

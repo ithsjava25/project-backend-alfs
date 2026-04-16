@@ -11,7 +11,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ResponseStatusException.class)
     public String handleResponseStatusException(ResponseStatusException ex, Model model) {
 
-        model.addAttribute("status", ex.getStatusCode());
+        model.addAttribute("status", ex.getStatusCode().value());
         model.addAttribute("error", ex.getReason());
 
         return "error";

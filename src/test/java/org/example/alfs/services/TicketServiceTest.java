@@ -506,10 +506,11 @@ class TicketServiceTest {
 
             // Act
             ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
-                    ticketService.createNewTicket(new TicketCreateDTO()));
+                    ticketService.getMyTickets());
 
             // Assert
             assertEquals(HttpStatus.UNAUTHORIZED, ex.getStatusCode());
+            verify(ticketRepository, never()).findByReporterId(any());
         }
 
         @Test
@@ -521,10 +522,11 @@ class TicketServiceTest {
 
             // Act
             ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
-                    ticketService.createNewTicket(new TicketCreateDTO()));
+                    ticketService.getMyTickets());
 
             // Assert
             assertEquals(HttpStatus.UNAUTHORIZED, ex.getStatusCode());
+            verify(ticketRepository, never()).findByReporterId(any());
         }
     }
 

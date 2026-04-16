@@ -1,6 +1,7 @@
 package org.example.alfs.controllers;
 
 import io.minio.GetObjectResponse;
+import org.example.alfs.dto.attachment.PresignedUrlDTO;
 import org.example.alfs.entities.Attachment;
 import org.example.alfs.repositories.AttachmentRepository;
 import org.example.alfs.services.storage.MinioStorageService;
@@ -67,5 +68,18 @@ public class AttachmentDownloadController {
         }
 
         return builder.body(resource);
+    }
+
+    @GetMapping("/{id}/presigned")
+    public ResponseEntity<PresignedUrlDTO> presigned(@PathVariable Long id) {
+        Attachment att = attachmentRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Attachment not found: " + id));
+
+        try {
+            String url = storageService.createPresignedGetUrl(att.getS3Key(), java.time.Duration.ofMinutes(10));
+            return ResponseEntity.ok(new PresignedUrlDTO(url));
+        } catch (Exception ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Failed to generate presigned URL", ex);
+        }
     }
 }

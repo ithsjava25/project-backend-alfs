@@ -4,6 +4,8 @@ import io.minio.GetObjectResponse;
 import org.example.alfs.dto.attachment.PresignedUrlDTO;
 import org.example.alfs.entities.Attachment;
 import org.example.alfs.repositories.AttachmentRepository;
+import org.example.alfs.services.AuditService;
+import org.example.alfs.enums.AuditAction;
 import org.example.alfs.services.storage.MinioStorageService;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
@@ -26,11 +28,14 @@ public class AttachmentDownloadController {
 
     private final AttachmentRepository attachmentRepository;
     private final MinioStorageService storageService;
+    private final AuditService auditService;
 
     public AttachmentDownloadController(AttachmentRepository attachmentRepository,
-                                        MinioStorageService storageService) {
+                                        MinioStorageService storageService,
+                                        AuditService auditService) {
         this.attachmentRepository = attachmentRepository;
         this.storageService = storageService;
+        this.auditService = auditService;
     }
 
     @GetMapping("/{id}/download")
@@ -77,6 +82,10 @@ public class AttachmentDownloadController {
 
         try {
             String url = storageService.createPresignedGetUrl(att.getS3Key(), java.time.Duration.ofMinutes(10));
+            // Auditlogga generering av presigned URL som nedladdningshändelse
+            if (att.getTicket() != null) {
+                auditService.log(AuditAction.ATTACHMENT_DOWNLOADED, "attachments", null, "attachmentId:" + att.getId(), att.getTicket());
+            }
             return ResponseEntity.ok(new PresignedUrlDTO(url));
         } catch (Exception ex) {
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Failed to generate presigned URL", ex);

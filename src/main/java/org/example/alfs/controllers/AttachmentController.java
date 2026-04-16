@@ -5,6 +5,7 @@ import org.example.alfs.entities.Attachment;
 import org.example.alfs.services.AttachmentService;
 import org.example.alfs.repositories.AttachmentRepository;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -26,6 +27,7 @@ public class AttachmentController {
     }
 
     @PostMapping("/upload")
+    @PreAuthorize("hasAnyRole('ADMIN','INVESTIGATOR')")
     public ResponseEntity<?> upload(@RequestParam("ticketId") Long ticketId,
                                     @RequestParam("file") MultipartFile file) throws Exception {
         if (ticketId == null || ticketId <= 0) {

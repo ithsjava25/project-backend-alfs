@@ -17,12 +17,15 @@ public class GlobalModelAttributes {
     public void addGlobalAttributes(Model model) {
 
         boolean isLoggedIn = false;
+        String username = null;
 
         try {
-            securityUtils.getCurrentUser();
+            var user = securityUtils.getCurrentUser();
             isLoggedIn = true;
+            username = user.getUsername();
         } catch (Exception ignored) {}
 
         model.addAttribute("isLoggedIn", isLoggedIn);
+        model.addAttribute("username", username);
     }
 }

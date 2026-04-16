@@ -1,4 +1,5 @@
 @param org.example.alfs.dto.ticket.TicketViewDTO ticket
+@param String success
 
 @template.layout(title = "View Ticket", content = @`
     <h1 class="text-2xl font-bold mb-6">Ticket</h1>
@@ -20,4 +21,4 @@
             <strong>Status:</strong> ${ticket.getStatus()}
         </div>
     </div>
-`)
+`, success = success)

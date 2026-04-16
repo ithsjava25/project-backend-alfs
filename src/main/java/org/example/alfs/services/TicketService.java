@@ -73,7 +73,11 @@ public class TicketService {
         Ticket ticket = ticketRepository.findByReporterToken(token)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
 
-        return ticketMapper.entityToViewDTO(ticket);
+        TicketViewDTO view = ticketMapper.entityToViewDTO(ticket);
+
+        view.setToken(ticket.getReporterToken());
+
+        return view;
     }
 
     //findById

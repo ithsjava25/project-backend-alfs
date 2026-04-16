@@ -47,7 +47,7 @@
                 </div>
             @endif
         <form method="get"
-              onsubmit="event.preventDefault(); window.location='/tickets/token/' + this.token.value;"
+              onsubmit="event.preventDefault(); window.location='/tickets/token/' + encodeURIComponent(this.token.value.trim())"
               class="space-y-4">
 
             <h2 class="text-xl font-bold leading-tight">View report with token</h2>

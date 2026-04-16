@@ -47,6 +47,7 @@ public class AttachmentDownloadController {
     }
 
     @GetMapping("/{id}/download")
+    @PreAuthorize("hasAnyRole('ADMIN','INVESTIGATOR')")
     public ResponseEntity<Resource> download(@PathVariable Long id) {
         Attachment att = attachmentRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Attachment not found: " + id));

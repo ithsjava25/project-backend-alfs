@@ -14,6 +14,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -91,14 +92,16 @@ class TicketServiceTest {
             when(ticketMapper.entityToViewDTO(any())).thenReturn(viewDTO);
 
             // Act
-            ticketService.createNewTicket(dto);
+            TicketViewDTO result = ticketService.createNewTicket(dto);
 
             // Assert
             verify(ticketRepository).save(argThat(ticket ->
                     reporter.equals(ticket.getReporter()) &&
+                            ticket.getReporterToken() == null &&
                             "Test Ticket".equals(ticket.getTitle()) &&
                             "This is a test ticket".equals(ticket.getDescription())
             ));
+            assertNull(result.getToken());
         }
 
         @Test
@@ -116,14 +119,15 @@ class TicketServiceTest {
             when(ticketMapper.entityToViewDTO(any())).thenReturn(viewDTO);
 
             // Act
+            ArgumentCaptor<Ticket> ticketCaptor = ArgumentCaptor.forClass(Ticket.class);
             TicketViewDTO result = ticketService.createNewTicket(dto);
 
             // Assert
-            verify(ticketRepository).save(argThat(ticket ->
-                    ticket.getReporter() == null &&
-                            ticket.getReporterToken() != null
-            ));
-            assertNotNull(result.getToken());
+            verify(ticketRepository).save(ticketCaptor.capture());
+            Ticket saved = ticketCaptor.getValue();
+            assertNull(saved.getReporter());
+            assertNotNull(saved.getReporterToken());
+            assertEquals(saved.getReporterToken(), result.getToken());
         }
     }
 

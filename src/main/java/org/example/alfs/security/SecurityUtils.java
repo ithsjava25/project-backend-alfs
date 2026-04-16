@@ -32,7 +32,18 @@ public class SecurityUtils {
         try {
             return getCurrentUser();
         } catch (RuntimeException ex) {
-            return null;
+
+            String message = ex.getMessage();
+
+            boolean authFailure =
+                    "No authenticated user in security context".equals(message) ||
+                            "Authenticated user not found in database".equals(message);
+
+            if (authFailure) {
+                return null;
+            }
+
+            throw ex;
         }
     }
 }

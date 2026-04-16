@@ -38,43 +38,41 @@ public class TicketService {
     }
 
     //createNewTicket
-    public TicketViewDTO createNewTicket(TicketCreateDTO ticketCreateDTO) {
-
-        Ticket ticket = new Ticket();
-
-        ticket.setTitle(ticketCreateDTO.getTitle());
-        ticket.setDescription(ticketCreateDTO.getDescription());
-
-        User user = requireCurrentUser();
-        ticket.setReporter(user);
-
-        Ticket savedTicket = ticketRepository.save(ticket);
-
-        return ticketMapper.entityToViewDTO(savedTicket);
-    }
-
-    //Create anonymous ticket
-    // This token is currently stored in plain text for simplicity.
-    //todo hash token
-    public TicketViewDTO createAnonymousTicket(TicketCreateDTO dto) {
+    public TicketViewDTO createNewTicket(TicketCreateDTO dto) {
 
         Ticket ticket = new Ticket();
 
         ticket.setTitle(dto.getTitle());
         ticket.setDescription(dto.getDescription());
 
-        String rawToken = java.util.UUID.randomUUID().toString();
+        User user = null;
 
-        ticket.setReporterToken(rawToken);
+        try {
+            user = requireCurrentUser();
+        } catch (ResponseStatusException ex) {
+            user = null;
+        }
+
+        String token = null;
+
+        if (user != null) {
+            ticket.setReporter(user);
+        } else {
+            token = java.util.UUID.randomUUID().toString();
+            ticket.setReporterToken(token);
+        }
 
         Ticket saved = ticketRepository.save(ticket);
 
         TicketViewDTO view = ticketMapper.entityToViewDTO(saved);
 
-        view.setToken(rawToken);
+        if (token != null) {
+            view.setToken(token);
+        }
 
         return view;
     }
+
 
     // View by token
     public TicketViewDTO getTicketByToken(String token) {

@@ -45,13 +45,7 @@ public class TicketService {
         ticket.setTitle(dto.getTitle());
         ticket.setDescription(dto.getDescription());
 
-        User user = null;
-
-        try {
-            user = requireCurrentUser();
-        } catch (ResponseStatusException ex) {
-            user = null;
-        }
+        User user = securityUtils.getCurrentUserOrNull();
 
         String token = null;
 

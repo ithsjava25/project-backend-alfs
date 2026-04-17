@@ -91,7 +91,8 @@ public class TicketCommentService {
         }
 
         // Anonymous
-        if (token != null && token.equals(ticket.getReporterToken())) {
+        if (token != null && !token.isBlank()
+                && token.equals(ticket.getReporterToken())) {
             return;
         }
 

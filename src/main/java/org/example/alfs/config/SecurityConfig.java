@@ -52,6 +52,16 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
 
+                // Use custom error page for 403 (Spring Security access denied)
+                .exceptionHandling(exception -> exception
+                        .accessDeniedHandler((
+                                request,
+                                response,
+                                ex) -> {
+                            request.getRequestDispatcher("/error/403")
+                                    .forward(request, response); })
+                )
+
                 // disable DEFAULT LOGIN
                 .formLogin(form -> form.disable())
                 .httpBasic(basic -> basic.disable())

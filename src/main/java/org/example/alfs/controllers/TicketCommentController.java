@@ -9,6 +9,8 @@ import org.example.alfs.services.TicketCommentService;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 @Controller
@@ -34,7 +36,10 @@ public class TicketCommentController {
 
         commentService.addComment(ticketId, dto, user, token);
 
-        return "redirect:/view/id/" + ticketId + (token != null ? "?token=" + token : "");
+        String base = "redirect:/view/id/" + ticketId;
+        return token != null
+                ? base + "?token=" + URLEncoder.encode(token, StandardCharsets.UTF_8)
+                : base;
     }
 
     @GetMapping("/{ticketId}/comments")

@@ -27,22 +27,25 @@ public class TicketCommentController {
     @PostMapping("/{ticketId}/comments")
     public String addComment(
             @PathVariable Long ticketId,
-            @Valid @ModelAttribute CommentCreateDTO dto
+            @Valid @ModelAttribute CommentCreateDTO dto,
+            @RequestParam(required = false) String token
     ) {
-        User user = getCurrentUserOrNull(); // unauthenticated users currently have no access; anonymous flow will be added later.
+        User user = getCurrentUserOrNull();
 
-        commentService.addComment(ticketId, dto, user);
+        commentService.addComment(ticketId, dto, user, token);
 
-        return "redirect:/view/id/" + ticketId;
+        return "redirect:/view/id/" + ticketId + (token != null ? "?token=" + token : "");
     }
 
     @GetMapping("/{ticketId}/comments")
     @ResponseBody
-    public List<CommentViewDTO> getComments(@PathVariable Long ticketId) {
-
+    public List<CommentViewDTO> getComments(
+            @PathVariable Long ticketId,
+            @RequestParam(required = false) String token
+    ) {
         User user = getCurrentUserOrNull();
 
-        return commentService.getComments(ticketId, user);
+        return commentService.getComments(ticketId, user, token);
     }
 
     private User getCurrentUserOrNull() {

@@ -2,9 +2,12 @@ package org.example.alfs.services;
 
 import org.example.alfs.entities.Attachment;
 import org.example.alfs.entities.Ticket;
+import org.example.alfs.entities.User;
 import org.example.alfs.enums.AuditAction;
+import org.example.alfs.enums.Role;
 import org.example.alfs.repositories.AttachmentRepository;
 import org.example.alfs.repositories.TicketRepository;
+import org.example.alfs.security.SecurityUtils;
 import org.example.alfs.services.storage.MinioStorageService;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -19,15 +22,18 @@ public class AttachmentService {
     private final AttachmentRepository attachmentRepository;
     private final TicketRepository ticketRepository;
     private final AuditService auditService;
+    private final SecurityUtils securityUtils;
 
     public AttachmentService(MinioStorageService storageService,
                              AttachmentRepository attachmentRepository,
                              TicketRepository ticketRepository,
-                             AuditService auditService) {
+                             AuditService auditService,
+                             SecurityUtils securityUtils) {
         this.storageService = storageService;
         this.attachmentRepository = attachmentRepository;
         this.ticketRepository = ticketRepository;
         this.auditService = auditService;
+        this.securityUtils = securityUtils;
     }
 
     @Transactional
@@ -35,6 +41,8 @@ public class AttachmentService {
         Ticket ticket = ticketRepository.findById(ticketId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found: " + ticketId));
 
+        User user = getCurrentUserOrNull();
+        checkAccess(ticket, user);
         String objectKey = storageService.upload(file);
 
         try {
@@ -62,5 +70,48 @@ public class AttachmentService {
             }
             throw e;
         }
+    }
+
+    private User getCurrentUserOrNull() {
+        try {
+            return securityUtils.getCurrentUser();
+        } catch (RuntimeException ex) {
+            String message = ex.getMessage();
+
+            boolean authFailure =
+                    "No authenticated user in security context".equals(message) ||
+                            "Authenticated user not found in database".equals(message);
+
+            if (authFailure) {
+                return null;
+            }
+
+            throw ex;
+        }
+    }
+
+    private void checkAccess(Ticket ticket, User user) {
+
+        if (user == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required");
+        }
+
+        if (user.getRole() == Role.ADMIN) return;
+
+        if (user.getRole() == Role.INVESTIGATOR) {
+            if (ticket.getInvestigator() != null &&
+                    ticket.getInvestigator().getId().equals(user.getId())) {
+                return;
+            }
+        }
+
+        if (user.getRole() == Role.REPORTER) {
+            if (ticket.getReporter() != null &&
+                    ticket.getReporter().getId().equals(user.getId())) {
+                return;
+            }
+        }
+
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
     }
 }

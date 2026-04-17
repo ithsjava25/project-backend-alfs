@@ -33,7 +33,7 @@ public class TicketCommentController {
 
         commentService.addComment(ticketId, dto, user);
 
-        return "redirect:/view/id/" + ticketId;
+        return "redirect:/tickets/" + ticketId;
     }
 
     @GetMapping("/{ticketId}/comments")

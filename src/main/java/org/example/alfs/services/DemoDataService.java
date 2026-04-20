@@ -212,16 +212,16 @@ public class DemoDataService {
     }
 
     private void addAuditLog(Ticket ticket, User user, AuditAction action, String field, String oldVal, String newVal) {
-        AuditLog log = new AuditLog();
+        AuditLog entry = new AuditLog();
 
-        log.setTicket(ticket);
-        log.setUser(user);
-        log.setAction(action);
-        log.setFieldName(field);
-        log.setOldValue(oldVal);
-        log.setNewValue(newVal);
+        entry.setTicket(ticket);
+        entry.setUser(user);
+        entry.setAction(action);
+        entry.setFieldName(field);
+        entry.setOldValue(oldVal);
+        entry.setNewValue(newVal);
 
-        auditLogRepository.save(log);
+        auditLogRepository.save(entry);
     }
 
     private void changeStatus(Ticket t, User user, TicketStatus newStatus) {

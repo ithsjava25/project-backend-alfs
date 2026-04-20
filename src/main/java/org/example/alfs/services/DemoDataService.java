@@ -94,7 +94,8 @@ public class DemoDataService {
                 "Corruption case",
                 "Procurement issue",
                 u.reporter1(),
-                u.investigator1()
+                u.investigator1(),
+                u.admin()
         );
         changeStatus(t1, u.investigator1(), TicketStatus.IN_PROGRESS);
 
@@ -102,7 +103,8 @@ public class DemoDataService {
                 "Anonymous harassment",
                 "Ongoing issue",
                 null, // Anonymous reporter
-                u.investigator2()
+                u.investigator2(),
+                u.admin()
         );
         changeStatus(t2, u.investigator2(), TicketStatus.IN_PROGRESS);
 
@@ -110,7 +112,8 @@ public class DemoDataService {
                 "Financial misreporting",
                 "Accounting irregularities",
                 u.reporter2(),
-                u.investigator1()
+                u.investigator1(),
+                u.admin()
         );
         changeStatus(t3, u.investigator1(), TicketStatus.IN_PROGRESS);
         changeStatus(t3, u.investigator1(), TicketStatus.RESOLVED);
@@ -119,7 +122,8 @@ public class DemoDataService {
                 "Unauthorized access",
                 "Security issue",
                 u.reporter1(),
-                null
+                null,
+                u.admin()
         );
 
         return new SeedTickets(t1, t2, t3, t4);
@@ -133,7 +137,7 @@ public class DemoDataService {
     ) {
     }
 
-    private Ticket addTicket(String title, String description, User reporter, User investigator) {
+    private Ticket addTicket(String title, String description, User reporter, User investigator, User admin) {
         Ticket t = new Ticket();
 
         t.setTitle(title);
@@ -155,7 +159,7 @@ public class DemoDataService {
         }
 
         if (investigator != null) {
-            addAuditLog(t, investigator, AuditAction.ASSIGNED, "investigator", null, investigator.getUsername());
+            addAuditLog(t, admin, AuditAction.ASSIGNED, "investigator", null, investigator.getUsername());
         }
 
         return t;

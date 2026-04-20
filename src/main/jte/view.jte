@@ -171,17 +171,35 @@
                         @if(c.getAuthor().equals(username))
                             <div class="flex justify-end">
                                 <div class="bg-blue-500 text-white p-3 rounded max-w-[70%] break-words">
+
                                     <div class="text-xs font-bold text-right mb-1">
                                         ${c.getAuthor()}
                                     </div>
+
                                     ${c.getMessage()}
+
+                                    <!-- 🟢 TIME -->
+                                    <div class="text-[10px] text-blue-200 mt-1 text-right">
+                                        ${c.getFormattedCreatedAt()}
+                                    </div>
+
                                 </div>
                             </div>
                         @else
                             <div class="flex justify-start">
                                 <div class="bg-gray-200 p-3 rounded max-w-[70%] break-words">
-                                    <div class="text-xs font-bold">${c.getAuthor()}</div>
+
+                                    <div class="text-xs font-bold">
+                                        ${c.getAuthor()}
+                                    </div>
+
                                     ${c.getMessage()}
+
+                                    <!-- 🟢 TIME -->
+                                    <div class="text-[10px] text-gray-500 mt-1">
+                                        ${c.getFormattedCreatedAt()}
+                                    </div>
+
                                 </div>
                             </div>
                         @endif
@@ -205,6 +223,13 @@
                               class="w-full border rounded px-3 py-2 text-sm resize-none"
                               placeholder="Type message..."></textarea>
 
+                    @if("ADMIN".equals(role) || "INVESTIGATOR".equals(role))
+                        <label class="flex items-center gap-2 text-xs text-gray-600">
+                            <input type="checkbox" name="internalNote" value="true" />
+                            Internal message
+                        </label>
+                    @endif
+
                     <div class="flex justify-end">
                         <button id="sendBtn"
                                 disabled
@@ -214,7 +239,6 @@
                     </div>
                 </form>
             </div>
-
         </div>
 
         <!-- AUDIT LOGS -->
@@ -255,12 +279,14 @@ function toggleSendButton() {
 
     if (textarea.value.trim() === "") {
         button.disabled = true;
-        button.classList.remove("bg-[#1a2b49]", "text-white");
-        button.classList.add("bg-gray-300", "text-gray-500");
+
+        button.classList.remove("bg-[#1a2b49]", "text-white", "cursor-pointer");
+        button.classList.add("bg-gray-300", "text-gray-500", "cursor-not-allowed");
     } else {
         button.disabled = false;
-        button.classList.remove("bg-gray-300", "text-gray-500");
-        button.classList.add("bg-[#1a2b49]", "text-white");
+
+        button.classList.remove("bg-gray-300", "text-gray-500", "cursor-not-allowed");
+        button.classList.add("bg-[#1a2b49]", "text-white", "cursor-pointer");
     }
 }
 </script>

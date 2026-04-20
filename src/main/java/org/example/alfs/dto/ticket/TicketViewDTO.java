@@ -24,6 +24,7 @@ public class TicketViewDTO {
     private LocalDateTime createdAt;
 
     private Long assignedInvestigatorId;
+    private String assignedInvestigatorName;
 
     public String getFormattedCreatedAt() {
         if (createdAt == null) return "";

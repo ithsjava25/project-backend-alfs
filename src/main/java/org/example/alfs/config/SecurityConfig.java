@@ -3,6 +3,7 @@ package org.example.alfs.config;
 import org.example.alfs.security.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -47,7 +48,7 @@ public class SecurityConfig {
                         .requestMatchers("/startPage", "/").permitAll()
                         .requestMatchers("/tickets/create").permitAll()
                         .requestMatchers("/tickets/previewTicket").permitAll()
-
+                        .requestMatchers(HttpMethod.POST, "/api/files/upload").permitAll()
                         //allow access to endpoints during development
                         .requestMatchers("/tickets/**").permitAll()
                         .requestMatchers("/css/**", "/js/**", "/images/**", "/static/**").permitAll()

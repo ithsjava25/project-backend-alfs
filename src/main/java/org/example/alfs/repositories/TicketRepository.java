@@ -29,4 +29,5 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     // Hämta alla fall, paginerat
     Page<Ticket> findAll(Pageable pageable);
 
+
 }

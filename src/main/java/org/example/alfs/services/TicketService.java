@@ -110,6 +110,14 @@ public class TicketService {
                 .toList();
     }
 
+    // this is for admin page
+    public List<TicketViewDTO> getAllTickets() {
+        return ticketRepository.findAll()
+                .stream()
+                .map(ticketMapper::entityToViewDTO)
+                .toList();
+    }
+
     // ----------------- filters -----------------
 
     public List<TicketViewDTO> getTicketsByStatus(TicketStatus status) {

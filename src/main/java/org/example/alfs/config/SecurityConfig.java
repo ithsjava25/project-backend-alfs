@@ -47,7 +47,7 @@ public class SecurityConfig {
                         .requestMatchers("/startPage", "/").permitAll()
                         .requestMatchers("/tickets/create").permitAll()
                         .requestMatchers("/tickets/previewTicket").permitAll()
-
+                        .requestMatchers("/api/files/**").permitAll()
                         //allow access to endpoints during development
                         .requestMatchers("/tickets/**").permitAll()
                         .requestMatchers("/css/**", "/js/**", "/images/**", "/static/**").permitAll()

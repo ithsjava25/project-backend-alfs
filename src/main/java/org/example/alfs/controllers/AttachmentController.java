@@ -1,6 +1,8 @@
 package org.example.alfs.controllers;
 
 import org.example.alfs.dto.attachment.AttachmentViewDTO;
+import org.example.alfs.entities.User;
+import org.example.alfs.security.SecurityUtils;
 import org.example.alfs.services.AttachmentService;
 import org.example.alfs.repositories.AttachmentRepository;
 import org.springframework.http.HttpStatus;
@@ -19,15 +21,18 @@ public class AttachmentController {
 
     private final AttachmentService attachmentService;
     private final AttachmentRepository attachmentRepository;
+    private final SecurityUtils securityUtils;
 
-    public AttachmentController(AttachmentService attachmentService, AttachmentRepository attachmentRepository) {
+    public AttachmentController(AttachmentService attachmentService, AttachmentRepository attachmentRepository, SecurityUtils securityUtils) {
         this.attachmentService = attachmentService;
         this.attachmentRepository = attachmentRepository;
+        this.securityUtils = securityUtils;
     }
 
     @PostMapping("/upload")
     public String upload(@RequestParam("ticketId") Long ticketId,
-                         @RequestParam("file") MultipartFile file) throws Exception {
+                         @RequestParam("file") MultipartFile file,
+                         @RequestParam(required = false) String token) throws Exception {
 
         if (ticketId == null || ticketId <= 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid ticketId");
@@ -37,7 +42,13 @@ public class AttachmentController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "File is empty");
         }
 
-        attachmentService.uploadToTicket(ticketId, file);
+        var user = getCurrentUserOrNull();
+
+        attachmentService.uploadToTicket(ticketId, file, user, token);
+
+        if (token != null && !token.isBlank()) {
+            return "redirect:/tickets/token/" + token;
+        }
 
         return "redirect:/tickets/" + ticketId;
     }
@@ -58,8 +69,17 @@ public class AttachmentController {
                 att.getTicket() != null ? att.getTicket().getId() : null,
                 att.getFileName(),
                 "/api/files/" + att.getId() + "/download",
-                att.getUploadedAt()
+                att.getUploadedAt(),
+                att.getUploadedBy() != null ? att.getUploadedBy().getUsername() : "Anonymous"
         )).toList();
         return ResponseEntity.ok(dtoList);
+    }
+
+    private User getCurrentUserOrNull() {
+        try {
+            return securityUtils.getCurrentUser();
+        } catch (Exception e) {
+            return null;
+        }
     }
 }

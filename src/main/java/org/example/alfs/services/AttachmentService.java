@@ -37,12 +37,22 @@ public class AttachmentService {
     }
 
     @Transactional
-    public Attachment uploadToTicket(Long ticketId, MultipartFile file) throws Exception {
-        Ticket ticket = ticketRepository.findById(ticketId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found: " + ticketId));
+    public Attachment uploadToTicket(Long ticketId, MultipartFile file, User user, String token) throws Exception {
 
-        User user = getCurrentUserOrNull();
-        checkAccess(ticket, user);
+        Ticket ticket;
+
+        if (user != null) {
+            // logged in
+            ticket = ticketRepository.findById(ticketId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
+        } else {
+            // anonymous via token
+            ticket = ticketRepository.findByReporterToken(token)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
+        }
+
+        checkAccess(ticket, user, token);
+
         String objectKey = storageService.upload(file);
 
         try {
@@ -55,17 +65,24 @@ public class AttachmentService {
             att.setFileName(fileName);
             att.setS3Key(objectKey);
             att.setTicket(ticket);
+            att.setUploadedBy(user);
+
             attachmentRepository.save(att);
 
-            auditService.log(AuditAction.ATTACHMENT_ADDED, "attachments", null, "objectKey:" + objectKey, ticket);
+            auditService.log(
+                    AuditAction.ATTACHMENT_ADDED,
+                    "attachments",
+                    null,
+                    "objectKey:" + objectKey,
+                    ticket
+            );
 
             return att;
+
         } catch (Exception e) {
-            // Compensation: delete uploaded object if DB operations fail
             try {
                 storageService.delete(objectKey);
             } catch (Exception deleteEx) {
-                // Log but don't mask original exception
                 e.addSuppressed(deleteEx);
             }
             throw e;
@@ -90,14 +107,20 @@ public class AttachmentService {
         }
     }
 
-    private void checkAccess(Ticket ticket, User user) {
+    private void checkAccess(Ticket ticket, User user, String token) {
 
+        // 🔥 ANONYMOUS VIA TOKEN
         if (user == null) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required");
+            if (token != null && token.equals(ticket.getReporterToken())) {
+                return; // ✅ tillåtet
+            }
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid or missing token");
         }
 
+        // ADMIN
         if (user.getRole() == Role.ADMIN) return;
 
+        // INVESTIGATOR
         if (user.getRole() == Role.INVESTIGATOR) {
             if (ticket.getInvestigator() != null &&
                     ticket.getInvestigator().getId().equals(user.getId())) {
@@ -105,6 +128,7 @@ public class AttachmentService {
             }
         }
 
+        // REPORTER
         if (user.getRole() == Role.REPORTER) {
             if (ticket.getReporter() != null &&
                     ticket.getReporter().getId().equals(user.getId())) {

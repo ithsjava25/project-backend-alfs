@@ -22,4 +22,12 @@ public class CommentViewDTO {
     private String author;
     private String role;
     private LocalDateTime createdAt;
+
+    private boolean internalNote;
+
+
+    public String getFormattedCreatedAt() {
+        if (createdAt == null) return "";
+        return createdAt.format(java.time.format.DateTimeFormatter.ofPattern("dd MMM HH:mm"));
+    }
 }

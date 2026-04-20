@@ -100,4 +100,4 @@ The seeder will only run if the admin user does not exist, so it is safe to leav
 | reporter1 | reporter1 | REPORTER |
 | reporter2 | reporter2 | REPORTER |
 
-Once running, the H2 database console is available at `/h2-console` using the credentials in `application.properties.
+Once running, the H2 database console is available at `/h2-console` using the credentials in `application.properties`.

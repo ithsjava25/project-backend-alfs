@@ -69,3 +69,13 @@ Notes
 - No authentication is enforced on these endpoints yet (Week 1 scope).
 - Ensure a Ticket with the provided `ticketId` exists in the database before uploading.
 
+
+# 🚀 API Documentation & Testing
+## This project uses Swagger UI to provide a visual interface for exploring and testing the API endpoints.
+
+### Accessing Swagger
+Once the application is running, you can access the interactive documentation at:
+
+Swagger UI: http://localhost:8080/swagger-ui/index.html
+
+OpenAPI Spec (JSON): http://localhost:8080/v3/api-docs

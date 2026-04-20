@@ -36,10 +36,11 @@ public class TicketCommentController {
 
         commentService.addComment(ticketId, dto, user, token);
 
-        String base = "redirect:/view/id/" + ticketId;
-        return token != null
-                ? base + "?token=" + URLEncoder.encode(token, StandardCharsets.UTF_8)
-                : base;
+        if (token != null && !token.isBlank()) {
+            return "redirect:/tickets/token/" + token;
+        }
+
+        return "redirect:/tickets/" + ticketId;
     }
 
     @GetMapping("/{ticketId}/comments")

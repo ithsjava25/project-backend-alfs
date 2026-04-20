@@ -19,6 +19,7 @@ public class TicketMapper {
 
         if (ticket.getInvestigator() != null) {
             ticketViewDTO.setAssignedInvestigatorId(ticket.getInvestigator().getId());
+            ticketViewDTO.setAssignedInvestigatorName(ticket.getInvestigator().getUsername());
         }
 
         return ticketViewDTO;

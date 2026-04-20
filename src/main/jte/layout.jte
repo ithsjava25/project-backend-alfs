@@ -34,16 +34,38 @@
 
         <nav class="space-x-6 text-sm">
 
-            <!-- always visible -->
             <a href="/" class="hover:text-[#b39359]">Home</a>
-            <a href="/tickets/create" class="hover:text-[#b39359]">Report</a>
 
-            @if(SecurityContextHolder.getContext().getAuthentication() != null
+            @if(
+                SecurityContextHolder.getContext().getAuthentication() == null
+                || !SecurityContextHolder.getContext().getAuthentication().isAuthenticated()
+                || "anonymousUser".equals(SecurityContextHolder.getContext().getAuthentication().getPrincipal())
+                || SecurityContextHolder.getContext().getAuthentication().getAuthorities().stream()
+                    .anyMatch(a -> a.getAuthority().equals("ROLE_REPORTER"))
+            )
+                <a href="/tickets/create" class="hover:text-[#b39359]">Report</a>
+            @endif
+
+            @if(
+                SecurityContextHolder.getContext().getAuthentication() != null
                 && SecurityContextHolder.getContext().getAuthentication().isAuthenticated()
-                && !"anonymousUser".equals(SecurityContextHolder.getContext().getAuthentication().getPrincipal()))
+                && !"anonymousUser".equals(SecurityContextHolder.getContext().getAuthentication().getPrincipal())
+            )
 
-                <!-- only for signed in users -->
-                <a href="/tickets/my" class="hover:text-[#b39359]">My tickets</a>
+                @if(SecurityContextHolder.getContext().getAuthentication().getAuthorities().stream()
+                    .anyMatch(a -> a.getAuthority().equals("ROLE_REPORTER")))
+                    <a href="/tickets/my" class="hover:text-[#b39359]">My tickets</a>
+                @endif
+
+                @if(SecurityContextHolder.getContext().getAuthentication().getAuthorities().stream()
+                    .anyMatch(a -> a.getAuthority().equals("ROLE_INVESTIGATOR")))
+                    <a href="/tickets/assigned" class="hover:text-[#b39359]">My cases</a>
+                @endif
+
+                @if(SecurityContextHolder.getContext().getAuthentication().getAuthorities().stream()
+                    .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN")))
+                    <a href="/admin/tickets" class="hover:text-[#b39359]">All tickets</a>
+                @endif
 
                 <form method="post" action="/auth/logout" style="display:inline;">
                     <button type="submit" class="hover:text-[#b39359]">Sign out</button>
@@ -51,7 +73,6 @@
 
             @else
 
-                <!-- only for signed out users -->
                 <a href="/login" class="hover:text-[#b39359]">Sign in</a>
 
             @endif

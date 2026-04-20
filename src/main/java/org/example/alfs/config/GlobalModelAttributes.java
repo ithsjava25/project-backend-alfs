@@ -20,16 +20,18 @@ public class GlobalModelAttributes {
 
         boolean isLoggedIn = false;
         String username = null;
-
+        String role = null;
         try {
             var user = securityUtils.getCurrentUser();
             isLoggedIn = true;
             username = user.getUsername();
+            role = user.getRole().name();
         } catch (RuntimeException ex) {
             log.debug("Could not resolve current user for global model attributes", ex);
         }
 
         model.addAttribute("isLoggedIn", isLoggedIn);
         model.addAttribute("username", username);
+        model.addAttribute("role", role);
     }
 }

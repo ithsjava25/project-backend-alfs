@@ -15,4 +15,11 @@ public class ErrorController {
         model.addAttribute("error", "Access denied");
         return "error";
     }
+
+    @GetMapping("/401")
+    public String unauthorized(Model model) {
+        model.addAttribute("status", 401);
+        model.addAttribute("error", "You need to log in to access this page");
+        return "error";
+    }
 }

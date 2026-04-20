@@ -8,15 +8,17 @@ public class AttachmentViewDTO {
     private String fileName;
     private String downloadUrl;
     private LocalDateTime uploadedAt;
+    private String uploadedBy;
 
     public AttachmentViewDTO() {}
 
-    public AttachmentViewDTO(Long id, Long ticketId, String fileName, String downloadUrl, LocalDateTime uploadedAt) {
+    public AttachmentViewDTO(Long id, Long ticketId, String fileName, String downloadUrl, LocalDateTime uploadedAt, String uploadedBy) {
         this.id = id;
         this.ticketId = ticketId;
         this.fileName = fileName;
         this.downloadUrl = downloadUrl;
         this.uploadedAt = uploadedAt;
+        this.uploadedBy = uploadedBy;
     }
 
     public Long getId() {
@@ -58,4 +60,7 @@ public class AttachmentViewDTO {
     public void setUploadedAt(LocalDateTime uploadedAt) {
         this.uploadedAt = uploadedAt;
     }
+
+    public String getUploadedBy() { return uploadedBy; }
+    public void setUploadedBy(String uploadedBy) { this.uploadedBy = uploadedBy; }
 }

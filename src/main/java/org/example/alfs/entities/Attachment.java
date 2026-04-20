@@ -29,6 +29,10 @@ public class Attachment {
 
     private LocalDateTime uploadedAt;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "uploaded_by")
+    private User uploadedBy;
+
     @PrePersist
     public void prePersist() {
         uploadedAt = LocalDateTime.now();

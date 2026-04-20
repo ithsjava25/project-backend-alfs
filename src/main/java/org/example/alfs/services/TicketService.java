@@ -112,6 +112,10 @@ public class TicketService {
 
     // this is for admin page
     public List<TicketViewDTO> getAllTickets() {
+
+        User user = requireCurrentUser();
+        requireAdmin(user);
+
         return ticketRepository.findAll()
                 .stream()
                 .map(ticketMapper::entityToViewDTO)

@@ -3,6 +3,7 @@ package org.example.alfs.config;
 import org.example.alfs.security.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -43,9 +44,11 @@ public class SecurityConfig {
                         .requestMatchers("/auth/signup").permitAll()
                         .requestMatchers("/auth/hash").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()
+                        .requestMatchers("/", "/startPage").permitAll()
+                        .requestMatchers(HttpMethod.GET,"/tickets/create").permitAll()
+                        .requestMatchers("/error/**").permitAll()
 
                         //allow access to endpoints during development
-                        .requestMatchers("/create", "/tickets/**", "/view/**").permitAll()
                         .requestMatchers("/css/**", "/js/**", "/images/**", "/static/**").permitAll()
                         .requestMatchers("/login", "/login-form").permitAll()
                         .requestMatchers("/signup", "/signup-form").permitAll()

@@ -1,6 +1,7 @@
 @param String error
 @param String tokenError
 @param String success
+
 @template.layout(title = "Login", content = @`
     <div class="flex flex-col items-center justify-center min-h-[70vh] gap-6">
         <h1 class="text-2xl font-bold mb-6">Login</h1>

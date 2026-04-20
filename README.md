@@ -74,12 +74,12 @@ Notes
 
 The application includes a demo data seeder that populates the database with realistic test data on startup.
 
-To enable it, add the following to your local `application.properties (do not commit this):
+To enable it, add the following to your local `application.properties` (do not commit this):
 
 ```properties
-propertiesspring.profiles.active=demo
+spring.profiles.active=demo
 ```
-The seeder will only run if no data exists, so it is safe to leave the profile active during development.
+The seeder will only run if the admin user does not exist, so it is safe to leave the profile active during development.
 
 ### What gets seeded:
 
@@ -89,6 +89,8 @@ The seeder will only run if no data exists, so it is safe to leave the profile a
 - A full audit trail recording every action
 
 ### Demo credentials:
+
+> **Note:** These credentials are for local development only. Never use username-as-password patterns in production.
 
 | Username | Password | Role |
 | --- | --- | --- |

@@ -78,8 +78,18 @@ public class AttachmentController {
     private User getCurrentUserOrNull() {
         try {
             return securityUtils.getCurrentUser();
-        } catch (Exception e) {
-            return null;
+        } catch (RuntimeException ex) {
+            String message = ex.getMessage();
+
+            boolean authFailure =
+                    "No authenticated user in security context".equals(message) ||
+                            "Authenticated user not found in database".equals(message);
+
+            if (authFailure) {
+                return null;
+            }
+
+            throw ex;
         }
     }
 }

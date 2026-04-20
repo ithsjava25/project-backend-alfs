@@ -69,3 +69,33 @@ Notes
 - No authentication is enforced on these endpoints yet (Week 1 scope).
 - Ensure a Ticket with the provided `ticketId` exists in the database before uploading.
 
+
+## Demo Data
+
+The application includes a demo data seeder that populates the database with realistic test data on startup.
+
+To enable it, add the following to your local `application.properties (do not commit this):
+
+```properties
+propertiesspring.profiles.active=demo
+```
+The seeder will only run if no data exists, so it is safe to leave the profile active during development.
+
+### What gets seeded:
+
+- 5 users: admin, investigator1, investigator2, reporter1, reporter2
+- 4 tickets in various states, including one anonymous submission
+- Comments and attachments spread across the tickets
+- A full audit trail recording every action
+
+### Demo credentials:
+
+| Username | Password | Role |
+| --- | --- | --- |
+| admin | admin | ADMIN |
+| investigator1 | investigator1 | INVESTIGATOR |
+| investigator2 | investigator2 | INVESTIGATOR |
+| reporter1 | reporter1 | REPORTER |
+| reporter2 | reporter2 | REPORTER |
+
+Once running, the H2 database console is available at `/h2-console` using the credentials in `application.properties.

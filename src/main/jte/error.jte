@@ -1,4 +1,3 @@
-@param org.example.alfs.exceptions.GlobalExceptionHandler ex
 @param String error
 @param Integer status
 

@@ -46,6 +46,12 @@ public class AttachmentService {
             ticket = ticketRepository.findById(ticketId)
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
         } else {
+
+            // validate token first
+            if (token == null || token.isBlank()) {
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid or missing token");
+            }
+
             // anonymous via token
             ticket = ticketRepository.findByReporterToken(token)
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
@@ -109,10 +115,10 @@ public class AttachmentService {
 
     private void checkAccess(Ticket ticket, User user, String token) {
 
-        // 🔥 ANONYMOUS VIA TOKEN
+        // ANONYMOUS VIA TOKEN
         if (user == null) {
             if (token != null && token.equals(ticket.getReporterToken())) {
-                return; // ✅ tillåtet
+                return;
             }
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid or missing token");
         }

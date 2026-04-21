@@ -780,6 +780,7 @@ class TicketServiceTest {
             Ticket ticket = openTicket();
             User admin = adminUser();
             User investigator = investigatorUser();
+            investigator.setUsername("inv-user");
             ticket.setInvestigator(investigator);
             ticket.setStatus(TicketStatus.IN_PROGRESS);
 
@@ -799,7 +800,7 @@ class TicketServiceTest {
             verify(auditService).log(
                     eq(AuditAction.UNASSIGNED),
                     eq("investigator"),
-                    any(),
+                    eq("inv-user"),
                     isNull(),
                     any(),
                     eq(admin)

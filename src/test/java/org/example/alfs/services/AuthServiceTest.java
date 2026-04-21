@@ -1,5 +1,6 @@
 package org.example.alfs.services;
 
+import org.example.alfs.dto.auth.SignupRequestDTO;
 import org.example.alfs.entities.User;
 import org.example.alfs.repositories.UserRepository;
 import org.junit.jupiter.api.DisplayName;
@@ -85,6 +86,30 @@ class AuthServiceTest {
             // Assert
             assertThat(result.getUsername()).isEqualTo("username");
             assertThat(result.getPasswordHash()).isEqualTo("hashed-password");
+        }
+    }
+
+    @Nested
+    @DisplayName("Signup tests")
+    class Signup {
+
+        @Test
+        @DisplayName("Username already taken should throw BadRequest")
+        void whenUsernameTaken_throwsBadRequest() {
+            // Arrange
+            when(userRepository.findByUsername("username")).thenReturn(Optional.of(new User()));
+
+            SignupRequestDTO request = new SignupRequestDTO();
+            request.setUsername("username");
+            request.setPassword("password");
+
+            // Act
+            ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                    () -> authService.signup(request));
+
+            // Assert
+            assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+            assertThat(ex.getReason()).isEqualTo("Username already exists");
         }
     }
 }

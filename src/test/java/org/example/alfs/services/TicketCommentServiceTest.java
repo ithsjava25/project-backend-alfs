@@ -68,6 +68,14 @@ class TicketCommentServiceTest {
         return u;
     }
 
+    private Ticket anonymousTicket(String token) {
+        Ticket t = new Ticket();
+        t.setId(400L);
+        t.setStatus(TicketStatus.OPEN);
+        t.setReporterToken(token);
+        return t;
+    }
+
     private CommentCreateDTO dto(String message, boolean internalNote) {
         CommentCreateDTO dto = new CommentCreateDTO();
         dto.setMessage(message);
@@ -225,6 +233,22 @@ class TicketCommentServiceTest {
             // Assert
             assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
             verify(ticketCommentRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("Anonymous user with valid token can add a comment")
+        void anonymous_withValidToken_canAddComment() {
+            // Arrange
+            String token = "valid-token";
+            Ticket ticket = anonymousTicket(token);
+
+            when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+            when(ticketCommentRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+            when(ticketCommentMapper.entityToViewDTO(any())).thenReturn(new CommentViewDTO());
+
+            // Act + Assert
+            assertDoesNotThrow(() ->
+                    ticketCommentService.addComment(1L, dto("Anonymous comment", false), null, token));
         }
 
     }

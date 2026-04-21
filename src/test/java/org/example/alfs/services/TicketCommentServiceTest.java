@@ -380,7 +380,7 @@ class TicketCommentServiceTest {
     }
 
     @Test
-    @DisplayName("Anonymous user with valid token only sees public comments")
+    @DisplayName("Anonymous reporter with valid token only sees public comments")
     void anonymous_withValidToken_seesOnlyPublicComments() {
         // Arrange
         String token = "valid-token";
@@ -398,7 +398,7 @@ class TicketCommentServiceTest {
     }
 
     @Test
-    @DisplayName("Anonymous user with wrong token should be forbidden")
+    @DisplayName("Anonymous reporter with wrong token should be forbidden")
     void anonymous_withWrongToken_shouldThrowForbidden() {
         // Arrange
         Ticket ticket = anonymousTicket("correct-token");
@@ -411,6 +411,20 @@ class TicketCommentServiceTest {
 
         // Assert
         assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
+    }
+
+    @Test
+    @DisplayName("Should throw Not Found when ticket does not exist")
+    void getComments_ticketNotFound_shouldThrowNotFound() {
+        // Arrange
+        when(ticketRepository.findById(1L)).thenReturn(Optional.empty());
+
+        // Act
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
+                ticketCommentService.getComments(1L, adminUser(), null));
+
+        // Assert
+        assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
     }
 
 }

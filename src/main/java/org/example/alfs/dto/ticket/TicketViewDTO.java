@@ -4,6 +4,7 @@ import lombok.Data;
 import org.example.alfs.enums.TicketStatus;
 import java.time.format.DateTimeFormatter;
 import java.time.LocalDateTime;
+import java.util.Locale;
 
 /*
  * DTO returned when retrieving ticket information.
@@ -26,9 +27,12 @@ public class TicketViewDTO {
     private Long assignedInvestigatorId;
     private String assignedInvestigatorName;
 
+    private static final DateTimeFormatter DISPLAY_FORMATTER =
+            DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm", Locale.ENGLISH);
+
     public String getFormattedCreatedAt() {
         if (createdAt == null) return "";
 
-        return createdAt.format(DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm"));
+        return createdAt.format(DISPLAY_FORMATTER);
     }
 }

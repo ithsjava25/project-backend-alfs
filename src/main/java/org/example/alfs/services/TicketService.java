@@ -42,6 +42,7 @@ public class TicketService {
     }
 
     //createNewTicket
+    @Transactional
     public TicketViewDTO createNewTicket(TicketCreateDTO dto) {
 
         Ticket ticket = new Ticket();
@@ -64,9 +65,9 @@ public class TicketService {
 
         auditService.log(
                 AuditAction.CREATED,
-                "ticket",
+                "title",
                 null,
-                "ticketId:" + saved.getId(),
+                saved.getTitle(),
                 saved,
                 user
         );

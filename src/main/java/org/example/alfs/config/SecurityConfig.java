@@ -46,7 +46,11 @@ public class SecurityConfig {
                         .requestMatchers("/auth/hash").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()
                         .requestMatchers("/", "/startPage").permitAll()
-                        .requestMatchers(HttpMethod.GET,"/tickets/create").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/tickets/create").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/tickets/create").permitAll()
+                        .requestMatchers("/tickets/ticket-created").permitAll()
+                        .requestMatchers("/tickets/token/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/tickets/*/comments").permitAll()
                         .requestMatchers("/error/**").permitAll()
 
                         //allow access to endpoints during development

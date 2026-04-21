@@ -4,6 +4,7 @@ import org.example.alfs.dto.ticket.TicketCreateDTO;
 import org.example.alfs.dto.ticket.TicketViewDTO;
 import org.example.alfs.entities.Ticket;
 import org.example.alfs.entities.User;
+import org.example.alfs.enums.AuditAction;
 import org.example.alfs.enums.Role;
 import org.example.alfs.enums.TicketStatus;
 import org.example.alfs.mapper.TicketMapper;
@@ -26,18 +27,22 @@ public class TicketService {
     private final TicketMapper ticketMapper;
     private final SecurityUtils securityUtils;
     private final UserRepository userRepository;
+    private final AuditService auditService;
 
     public TicketService(TicketRepository ticketRepository,
                          TicketMapper ticketMapper,
                          SecurityUtils securityUtils,
-                         UserRepository userRepository) {
+                         UserRepository userRepository,
+                         AuditService auditService) {
         this.ticketRepository = ticketRepository;
         this.ticketMapper = ticketMapper;
         this.securityUtils = securityUtils;
         this.userRepository = userRepository;
+        this.auditService = auditService;
     }
 
     //createNewTicket
+    @Transactional
     public TicketViewDTO createNewTicket(TicketCreateDTO dto) {
 
         Ticket ticket = new Ticket();
@@ -57,6 +62,15 @@ public class TicketService {
         }
 
         Ticket saved = ticketRepository.save(ticket);
+
+        auditService.log(
+                AuditAction.CREATED,
+                "title",
+                null,
+                saved.getTitle(),
+                saved,
+                user
+        );
 
         TicketViewDTO view = ticketMapper.entityToViewDTO(saved);
 
@@ -254,6 +268,15 @@ public class TicketService {
         ticket.setStatus(newStatus);
 
         Ticket savedTicket = ticketRepository.save(ticket);
+
+        auditService.log(
+                AuditAction.STATUS_CHANGED,
+                "status",
+                currentStatus.name(),
+                newStatus.name(),
+                savedTicket,
+                user
+        );
         return ticketMapper.entityToViewDTO(savedTicket);
     }
 
@@ -299,10 +322,32 @@ public class TicketService {
                     HttpStatus.BAD_REQUEST, "User is not an investigator");
         }
 
+        TicketStatus oldStatus = ticket.getStatus();
         ticket.setInvestigator(investigator);
         ticket.setStatus(TicketStatus.IN_PROGRESS);
 
         Ticket savedTicket = ticketRepository.save(ticket);
+
+
+        auditService.log(
+                AuditAction.STATUS_CHANGED,
+                "status",
+                oldStatus.name(),
+                TicketStatus.IN_PROGRESS.name(),
+                savedTicket,
+                user
+        );
+
+        auditService.log(
+                AuditAction.ASSIGNED,
+                "investigator",
+                null,
+                investigator.getUsername(),
+                savedTicket,
+                user
+        );
+
+
         return ticketMapper.entityToViewDTO(savedTicket);
     }
 
@@ -326,10 +371,22 @@ public class TicketService {
                     HttpStatus.BAD_REQUEST, "Must be IN_PROGRESS");
         }
 
+        String oldInvestigator = ticket.getInvestigator().getUsername();
+
         ticket.setInvestigator(null);
         ticket.setStatus(TicketStatus.OPEN);
 
         Ticket savedTicket = ticketRepository.save(ticket);
+
+        auditService.log(
+                AuditAction.UNASSIGNED,
+                "investigator",
+                oldInvestigator,
+                null,
+                savedTicket,
+                user
+        );
+
         return ticketMapper.entityToViewDTO(savedTicket);
     }
 }

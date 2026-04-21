@@ -269,6 +269,39 @@ class TicketCommentServiceTest {
             verify(ticketCommentRepository, never()).save(any());
         }
 
+        @Test
+        @DisplayName("Anonymous user with wrong token should be forbidden")
+        void anonymous_withWrongToken_shouldThrowForbidden() {
+            // Arrange
+            Ticket ticket = anonymousTicket("correct-token");
+
+            when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+
+            // Act
+            ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
+                    ticketCommentService.addComment(1L, dto("Note", false), null, "wrong-token"));
+
+            // Assert
+            assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
+            verify(ticketCommentRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("Anonymous user with no token should be forbidden")
+        void anonymous_withNoToken_shouldThrowForbidden() {
+            // Arrange
+            Ticket ticket = anonymousTicket("valid-token");
+
+            when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+
+            // Act
+            ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
+                    ticketCommentService.addComment(1L, dto("Note", false), null, null));
+
+            // Assert
+            assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
+        }
+
     }
 
 }

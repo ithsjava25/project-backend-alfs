@@ -115,6 +115,24 @@ class TicketCommentServiceTest {
                     ticketCommentService.addComment(1L, dto("Internal", true), admin, null));
         }
 
+        @Test
+        @DisplayName("Assigned investigator can add a comment")
+        void assignedInvestigator_canAddComment() {
+            // Arrange
+            User investigator = investigatorUser();
+            Ticket ticket = openTicketWithReporter(reporterUser());
+            ticket.setInvestigator(investigator);
+
+            // Act
+            when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+            when(ticketCommentRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+            when(ticketCommentMapper.entityToViewDTO(any())).thenReturn(new CommentViewDTO());
+
+            // Assert
+            assertDoesNotThrow(() ->
+                    ticketCommentService.addComment(1L, dto("Note", false), investigator, null));
+        }
+
     }
 
 }

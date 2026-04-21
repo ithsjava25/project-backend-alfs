@@ -358,6 +358,8 @@ public class TicketService {
                     HttpStatus.BAD_REQUEST, "Must be IN_PROGRESS");
         }
 
+        String oldInvestigator = ticket.getInvestigator().getUsername();
+
         ticket.setInvestigator(null);
         ticket.setStatus(TicketStatus.OPEN);
 
@@ -366,7 +368,7 @@ public class TicketService {
         auditService.log(
                 AuditAction.UNASSIGNED,
                 "investigator",
-                ticket.getInvestigator().getUsername(),
+                oldInvestigator,
                 null,
                 savedTicket,
                 user

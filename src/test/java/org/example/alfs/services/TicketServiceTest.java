@@ -41,6 +41,9 @@ class TicketServiceTest {
     @Mock
     SecurityUtils securityUtils;
 
+    @Mock
+    AuditService auditService;
+
     @InjectMocks
     TicketService ticketService;
 

@@ -4,6 +4,7 @@ import org.example.alfs.dto.ticket.TicketCreateDTO;
 import org.example.alfs.dto.ticket.TicketViewDTO;
 import org.example.alfs.entities.Ticket;
 import org.example.alfs.entities.User;
+import org.example.alfs.enums.AuditAction;
 import org.example.alfs.enums.Role;
 import org.example.alfs.enums.TicketStatus;
 import org.example.alfs.mapper.TicketMapper;
@@ -794,6 +795,15 @@ class TicketServiceTest {
             assertNull(ticket.getInvestigator());
             assertEquals(TicketStatus.OPEN, ticket.getStatus());
             verify(ticketRepository).save(ticket);
+
+            verify(auditService).log(
+                    eq(AuditAction.UNASSIGNED),
+                    eq("investigator"),
+                    any(),
+                    isNull(),
+                    any(),
+                    eq(admin)
+            );
         }
 
         @Test

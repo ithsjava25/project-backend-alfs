@@ -343,4 +343,23 @@ class TicketCommentServiceTest {
         }
     }
 
+    @Test
+    @DisplayName("Assigned investigator sees all comments including internal notes")
+    void assignedInvestigator_seesAllComments() {
+        // Arrange
+        User investigator = investigatorUser();
+        Ticket ticket = openTicketWithReporter(reporterUser());
+        ticket.setInvestigator(investigator);
+
+        when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+        when(ticketCommentRepository.findByTicketIdOrderByCreatedAtAsc(1L)).thenReturn(List.of());
+
+        // Act
+        ticketCommentService.getComments(1L, investigator, null);
+
+        // Assert
+        verify(ticketCommentRepository).findByTicketIdOrderByCreatedAtAsc(1L);
+    }
+
+
 }

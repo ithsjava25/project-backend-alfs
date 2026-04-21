@@ -38,8 +38,7 @@ class UserServiceTest {
         List<User> result = userService.getAllInvestigators();
 
         // Assert
-        assertThat(result).hasSize(1);
-        assertThat(result.getFirst().getRole()).isEqualTo(Role.INVESTIGATOR);
+        assertThat(result).containsExactly(investigator);
         verify(userRepository).findByRole(Role.INVESTIGATOR);
     }
 

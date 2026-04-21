@@ -12,6 +12,7 @@ public class TicketCommentMapper {
         dto.setId(comment.getId());
         dto.setMessage(comment.getMessage());
         dto.setCreatedAt(comment.getCreatedAt());
+        dto.setInternalNote(comment.isInternalNote());
 
         if (comment.getAuthor() != null) {
             dto.setAuthor(comment.getAuthor().getUsername());

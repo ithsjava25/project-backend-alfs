@@ -251,6 +251,24 @@ class TicketCommentServiceTest {
                     ticketCommentService.addComment(1L, dto("Anonymous comment", false), null, token));
         }
 
+        @Test
+        @DisplayName("Anonymous user cannot create an internal note")
+        void anonymous_cannotCreateInternalNote() {
+            // Arrange
+            String token = "valid-token";
+            Ticket ticket = anonymousTicket(token);
+
+            when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+
+            // Act
+            ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
+                    ticketCommentService.addComment(1L, dto("Secret", true), null, token));
+
+            // Assert
+            assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
+            verify(ticketCommentRepository, never()).save(any());
+        }
+
     }
 
 }

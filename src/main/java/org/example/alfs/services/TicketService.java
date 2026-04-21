@@ -322,10 +322,21 @@ public class TicketService {
                     HttpStatus.BAD_REQUEST, "User is not an investigator");
         }
 
+        TicketStatus oldStatus = ticket.getStatus();
         ticket.setInvestigator(investigator);
         ticket.setStatus(TicketStatus.IN_PROGRESS);
 
         Ticket savedTicket = ticketRepository.save(ticket);
+
+
+        auditService.log(
+                AuditAction.STATUS_CHANGED,
+                "status",
+                oldStatus.name(),
+                TicketStatus.IN_PROGRESS.name(),
+                savedTicket,
+                user
+        );
 
         auditService.log(
                 AuditAction.ASSIGNED,
@@ -335,6 +346,7 @@ public class TicketService {
                 savedTicket,
                 user
         );
+
 
         return ticketMapper.entityToViewDTO(savedTicket);
     }

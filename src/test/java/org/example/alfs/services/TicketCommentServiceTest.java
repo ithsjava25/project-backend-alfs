@@ -16,13 +16,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @DisplayName("TicketCommentService Test")
 @ExtendWith(MockitoExtension.class)
@@ -149,6 +150,24 @@ class TicketCommentServiceTest {
             // Assert
             assertDoesNotThrow(() ->
                     ticketCommentService.addComment(1L, dto("Internal", true), investigator, null));
+        }
+
+        @Test
+        @DisplayName("Unassigned investigator should be forbidden")
+        void unassignedInvestigator_shouldThrowForbidden() {
+            // Arrange
+            User investigator = investigatorUser();
+            Ticket ticket = openTicketWithReporter(reporterUser());
+
+            when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+
+            // Act
+            ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
+                    ticketCommentService.addComment(1L, dto("Note", false), investigator, null));
+
+            // Assert
+            assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
+            verify(ticketCommentRepository, never()).save(any());
         }
 
     }

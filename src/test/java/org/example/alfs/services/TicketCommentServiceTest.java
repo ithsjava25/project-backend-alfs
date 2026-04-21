@@ -116,12 +116,11 @@ class TicketCommentServiceTest {
             User admin = adminUser();
             Ticket ticket = openTicketWithReporter(reporterUser());
 
-            // Act
             when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
             when(ticketCommentRepository.save(any())).thenAnswer(i -> i.getArgument(0));
             when(ticketCommentMapper.entityToViewDTO(any())).thenReturn(new CommentViewDTO());
 
-            // Assert
+            // Act + Assert
             assertDoesNotThrow(() ->
                     ticketCommentService.addComment(1L, dto("Internal", true), admin, null));
         }
@@ -134,12 +133,11 @@ class TicketCommentServiceTest {
             Ticket ticket = openTicketWithReporter(reporterUser());
             ticket.setInvestigator(investigator);
 
-            // Act
             when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
             when(ticketCommentRepository.save(any())).thenAnswer(i -> i.getArgument(0));
             when(ticketCommentMapper.entityToViewDTO(any())).thenReturn(new CommentViewDTO());
 
-            // Assert
+            // Act + Assert
             assertDoesNotThrow(() ->
                     ticketCommentService.addComment(1L, dto("Note", false), investigator, null));
         }
@@ -152,12 +150,11 @@ class TicketCommentServiceTest {
             Ticket ticket = openTicketWithReporter(reporterUser());
             ticket.setInvestigator(investigator);
 
-            // Act
             when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
             when(ticketCommentRepository.save(any())).thenAnswer(i -> i.getArgument(0));
             when(ticketCommentMapper.entityToViewDTO(any())).thenReturn(new CommentViewDTO());
 
-            // Assert
+            // Act + Assert
             assertDoesNotThrow(() ->
                     ticketCommentService.addComment(1L, dto("Internal", true), investigator, null));
         }

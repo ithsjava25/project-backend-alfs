@@ -170,6 +170,22 @@ class TicketCommentServiceTest {
             verify(ticketCommentRepository, never()).save(any());
         }
 
+        @Test
+        @DisplayName("Reporter who owns the ticket can add a comment")
+        void owningReporter_canAddComment() {
+            // Arrange
+            User reporter = reporterUser();
+            Ticket ticket = openTicketWithReporter(reporter);
+
+            when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+            when(ticketCommentRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+            when(ticketCommentMapper.entityToViewDTO(any())).thenReturn(new CommentViewDTO());
+
+            // Act + Assert
+            assertDoesNotThrow(() ->
+                    ticketCommentService.addComment(1L, dto("My comment", false), reporter, null));
+        }
+
     }
 
 }

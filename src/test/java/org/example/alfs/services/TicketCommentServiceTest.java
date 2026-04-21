@@ -19,6 +19,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -317,6 +318,29 @@ class TicketCommentServiceTest {
             verify(ticketCommentRepository, never()).save(any());
         }
 
+    }
+
+    @Nested
+    @DisplayName("getComments tests")
+    class GetCommentsTests {
+
+        @Test
+        @DisplayName("Admin sees all comments including internal notes")
+        void admin_seesAllComments() {
+            // Arrange
+            User admin = adminUser();
+            Ticket ticket = openTicketWithReporter(reporterUser());
+
+            when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+            when(ticketCommentRepository.findByTicketIdOrderByCreatedAtAsc(1L)).thenReturn(List.of());
+
+            // Act
+            ticketCommentService.getComments(1L, admin, null);
+
+            // Assert
+            verify(ticketCommentRepository).findByTicketIdOrderByCreatedAtAsc(1L);
+            verify(ticketCommentRepository, never()).findByTicketIdAndInternalNoteFalseOrderByCreatedAtAsc(any());
+        }
     }
 
 }

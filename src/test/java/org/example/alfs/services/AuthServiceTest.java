@@ -55,17 +55,36 @@ class AuthServiceTest {
         void whenWrongPassword_throwsUnauthorized() {
             // Arrange
             User user = new User();
-            user.setPasswordHash("correct-password");
+            user.setPasswordHash("hashed-password");
 
-            when(userRepository.findByUsername("user")).thenReturn(Optional.of(user));
-            when(passwordEncoder.matches("wrong-password", "correct-password")).thenReturn(false);
+            when(userRepository.findByUsername("username")).thenReturn(Optional.of(user));
+            when(passwordEncoder.matches("wrong-password", "hashed-password")).thenReturn(false);
 
             // Act
             ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                    () -> authService.login("user", "wrong-password"));
+                    () -> authService.login("username", "wrong-password"));
 
             // Assert
             assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        }
+
+        @Test
+        @DisplayName("Correct credentials should return user")
+        void whenCredentialsCorrect_returnsUser() {
+            // Arrange
+            User user = new User();
+            user.setUsername("username");
+            user.setPasswordHash("hashed-password");
+
+            when(userRepository.findByUsername("username")).thenReturn(Optional.of(user));
+            when(passwordEncoder.matches("correct-password", "hashed-password")).thenReturn(true);
+
+            // Act
+            User result = authService.login("username", "correct-password");
+
+            // Assert
+            assertThat(result.getUsername()).isEqualTo("username");
+            assertThat(result.getPasswordHash()).isEqualTo("hashed-password");
         }
     }
 }

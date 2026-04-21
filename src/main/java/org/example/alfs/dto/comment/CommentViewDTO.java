@@ -28,6 +28,8 @@ public class CommentViewDTO {
 
     public String getFormattedCreatedAt() {
         if (createdAt == null) return "";
-        return createdAt.format(java.time.format.DateTimeFormatter.ofPattern("dd MMM HH:mm"));
+        return createdAt.format(
+                java.time.format.DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm")
+        );
     }
 }

@@ -302,6 +302,21 @@ class TicketCommentServiceTest {
             assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
         }
 
+        @Test
+        @DisplayName("Should throw Not Found when ticket does not exist")
+        void addComment_ticketNotFound_shouldThrowNotFound() {
+            // Arrange
+            when(ticketRepository.findById(1L)).thenReturn(Optional.empty());
+
+            // Act
+            ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
+                    ticketCommentService.addComment(1L, dto("Hello", false), adminUser(), null));
+
+            // Assert
+            assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
+            verify(ticketCommentRepository, never()).save(any());
+        }
+
     }
 
 }

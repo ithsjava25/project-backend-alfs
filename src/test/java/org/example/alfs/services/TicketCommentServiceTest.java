@@ -379,4 +379,22 @@ class TicketCommentServiceTest {
         verify(ticketCommentRepository, never()).findByTicketIdOrderByCreatedAtAsc(any());
     }
 
+    @Test
+    @DisplayName("Anonymous user with valid token only sees public comments")
+    void anonymous_withValidToken_seesOnlyPublicComments() {
+        // Arrange
+        String token = "valid-token";
+        Ticket ticket = anonymousTicket(token);
+
+        when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+        when(ticketCommentRepository.findByTicketIdAndInternalNoteFalseOrderByCreatedAtAsc(1L)).thenReturn(List.of());
+
+        // Act
+        ticketCommentService.getComments(1L, null, token);
+
+        // Assert
+        verify(ticketCommentRepository).findByTicketIdAndInternalNoteFalseOrderByCreatedAtAsc(1L);
+        verify(ticketCommentRepository, never()).findByTicketIdOrderByCreatedAtAsc(any());
+    }
+
 }

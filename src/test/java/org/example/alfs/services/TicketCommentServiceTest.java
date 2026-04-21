@@ -302,6 +302,7 @@ class TicketCommentServiceTest {
 
             // Assert
             assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
+            verify(ticketCommentRepository, never()).save(any());
         }
 
         @Test

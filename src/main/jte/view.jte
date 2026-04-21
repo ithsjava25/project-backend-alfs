@@ -306,16 +306,18 @@
 
                         <!-- what -->
                         <div class="text-sm text-gray-700">
-                            @if(log.getAction().toString().equals("ATTACHMENT_ADDED"))
+                            @if(log.getAction() == org.example.alfs.enums.AuditAction.ATTACHMENT_ADDED)
                                 File uploaded
-                            @elseif(log.getAction().toString().equals("STATUS_CHANGED"))
+                            @elseif(log.getAction() == org.example.alfs.enums.AuditAction.STATUS_CHANGED)
                                 Status updated
-                            @elseif(log.getAction().toString().equals("ASSIGNED"))
+                            @elseif(log.getAction() == org.example.alfs.enums.AuditAction.ASSIGNED)
                                 Investigator assigned
-                            @elseif(log.getAction().toString().equals("CREATED"))
+                            @elseif(log.getAction() == org.example.alfs.enums.AuditAction.UNASSIGNED)
+                                Investigator unassigned
+                            @elseif(log.getAction() == org.example.alfs.enums.AuditAction.CREATED)
                                 Ticket created
                             @else
-                                ${log.getAction().toString().replace("_", " ")}
+                                ${log.getAction().name().replace("_", " ")}
                             @endif
                         </div>
 
@@ -335,7 +337,6 @@
                         <div class="text-[10px] text-gray-400">
                             ${log.getFormattedCreatedAt()}
                         </div>
-
                     </div>
 
                 @endfor

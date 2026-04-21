@@ -1,5 +1,6 @@
 package org.example.alfs.services;
 
+import org.example.alfs.entities.User;
 import org.example.alfs.repositories.UserRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -48,6 +49,23 @@ class AuthServiceTest {
             // Assert
             assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
         }
-    }
 
+        @Test
+        @DisplayName("Wrong password should throw Unauthorized")
+        void whenWrongPassword_throwsUnauthorized() {
+            // Arrange
+            User user = new User();
+            user.setPasswordHash("correct-password");
+
+            when(userRepository.findByUsername("user")).thenReturn(Optional.of(user));
+            when(passwordEncoder.matches("wrong-password", "correct-password")).thenReturn(false);
+
+            // Act
+            ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                    () -> authService.login("user", "wrong-password"));
+
+            // Assert
+            assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        }
+    }
 }

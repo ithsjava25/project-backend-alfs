@@ -296,9 +296,48 @@
 
             @if(auditLogs != null)
                 @for(var log : auditLogs)
-                    <div class="text-sm mb-2">
-                        ${log.getAction()}
+
+                    <div class="mb-3 p-2 border-b border-gray-100">
+
+                        <!-- who -->
+                        <div class="text-xs font-semibold text-gray-800">
+                            ${log.getUser() != null ? log.getUser().getUsername() : "System"}
+                        </div>
+
+                        <!-- what -->
+                        <div class="text-sm text-gray-700">
+                            @if(log.getAction().toString().equals("ATTACHMENT_ADDED"))
+                                File uploaded
+                            @elseif(log.getAction().toString().equals("STATUS_CHANGED"))
+                                Status updated
+                            @elseif(log.getAction().toString().equals("ASSIGNED"))
+                                Investigator assigned
+                            @elseif(log.getAction().toString().equals("CREATED"))
+                                Ticket created
+                            @else
+                                ${log.getAction().toString().replace("_", " ")}
+                            @endif
+                        </div>
+
+                        @if(log.getFieldName() != null)
+                            <div class="text-xs text-gray-500">
+                                <span class="font-medium">
+                                    ${log.getFieldName()}:
+                                </span>
+                                @if(log.getOldValue() != null)
+                                    ${log.getOldValue()} →
+                                @endif
+                                ${log.getNewValue()}
+                            </div>
+                        @endif
+
+                        <!-- when -->
+                        <div class="text-[10px] text-gray-400">
+                            ${log.getFormattedCreatedAt()}
+                        </div>
+
                     </div>
+
                 @endfor
             @endif
         </div>

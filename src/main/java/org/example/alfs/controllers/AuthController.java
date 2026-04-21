@@ -1,5 +1,6 @@
 package org.example.alfs.controllers;
 
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import org.example.alfs.dto.auth.LoginRequestDTO;
@@ -47,6 +48,7 @@ public class AuthController {
      * This endpoint is mainly used for API testing (e.g. Postman).
      * For browser-based login, see AuthViewController.
      */
+    @Operation(summary = "Log in a user", description = "Authenticate with username and password to receive a JWT token.")
     @PostMapping("/login")
     public LoginResponseDTO login(@Valid @RequestBody LoginRequestDTO request) {
 
@@ -64,6 +66,7 @@ public class AuthController {
     /**
      * Handles user signup by validating input and creating a new account.
      */
+    @Operation(summary = "Sign up new user", description = "Makes a new user with username and password")
     @PostMapping("/signup")
     public void signup(@Valid @RequestBody SignupRequestDTO request) {
         authService.signup(request);

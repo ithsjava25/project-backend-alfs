@@ -3,6 +3,7 @@ package org.example.alfs.services;
 import org.example.alfs.dto.comment.CommentCreateDTO;
 import org.example.alfs.dto.comment.CommentViewDTO;
 import org.example.alfs.entities.Ticket;
+import org.example.alfs.entities.TicketComment;
 import org.example.alfs.entities.User;
 import org.example.alfs.enums.Role;
 import org.example.alfs.enums.TicketStatus;
@@ -425,6 +426,27 @@ class TicketCommentServiceTest {
 
         // Assert
         assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
+    }
+
+    @Test
+    @DisplayName("Returned comments are mapped correctly")
+    void getComments_returnsMappedDTOs() {
+        // Arrange
+        User admin = adminUser();
+        Ticket ticket = openTicketWithReporter(reporterUser());
+        TicketComment comment = new TicketComment();
+        CommentViewDTO expected = new CommentViewDTO();
+
+        when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+        when(ticketCommentRepository.findByTicketIdOrderByCreatedAtAsc(1L)).thenReturn(List.of(comment));
+        when(ticketCommentMapper.entityToViewDTO(comment)).thenReturn(expected);
+
+        // Act
+        List<CommentViewDTO> result = ticketCommentService.getComments(1L, admin, null);
+
+        // Assert
+        assertEquals(1, result.size());
+        assertSame(expected, result.getFirst());
     }
 
 }

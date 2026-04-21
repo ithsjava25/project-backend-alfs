@@ -361,5 +361,22 @@ class TicketCommentServiceTest {
         verify(ticketCommentRepository).findByTicketIdOrderByCreatedAtAsc(1L);
     }
 
+    @Test
+    @DisplayName("Reporter only sees public comments")
+    void reporter_seesOnlyPublicComments() {
+        // Arrange
+        User reporter = reporterUser();
+        Ticket ticket = openTicketWithReporter(reporter);
+
+        when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+        when(ticketCommentRepository.findByTicketIdAndInternalNoteFalseOrderByCreatedAtAsc(1L)).thenReturn(List.of());
+
+        // Act
+        ticketCommentService.getComments(1L, reporter, null);
+
+        // Assert
+        verify(ticketCommentRepository).findByTicketIdAndInternalNoteFalseOrderByCreatedAtAsc(1L);
+        verify(ticketCommentRepository, never()).findByTicketIdOrderByCreatedAtAsc(any());
+    }
 
 }

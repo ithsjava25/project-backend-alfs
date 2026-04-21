@@ -161,10 +161,37 @@
         </div>
 
         <!-- CHAT -->
-        <div class="col-span-2 bg-white p-4 rounded shadow flex flex-col h-[600px]">
+        <div class="col-span-2 bg-white p-4 rounded shadow flex flex-col h-[600px] relative">
 
-            <div class="flex-1 overflow-y-auto mb-4 space-y-4">
+            <!-- CHAT SCROLL AREA -->
+            <div id="chatContainer" class="flex-1 overflow-y-auto mb-4 space-y-4 relative">
 
+                <!-- TICKET DESCRIPTION (ALWAYS FIRST) -->
+                <div class="flex justify-start">
+                    <div class="bg-white border border-gray-300 shadow-sm p-3 rounded max-w-[70%] break-words">
+
+                        <div class="text-xs font-bold text-yellow-800 mb-1">
+                            Ticket Description
+                        </div>
+
+                        <div class="text-xs font-bold mb-1">
+                            @if(username != null)
+                                ${username}
+                            @else
+                                Anonymous
+                            @endif
+                        </div>
+
+                        ${ticket.getDescription()}
+
+                        <div class="text-[10px] text-gray-500 mt-1">
+                            ${ticket.getFormattedCreatedAt()}
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- COMMENTS -->
                 @if(comments != null)
                     @for(var c : comments)
 
@@ -178,9 +205,14 @@
 
                                     ${c.getMessage()}
 
-                                    <!-- 🟢 TIME -->
-                                    <div class="text-[10px] text-blue-200 mt-1 text-right">
+                                    <div class="text-[10px] text-blue-200 mt-1 text-right flex justify-end gap-2 items-center">
                                         ${c.getFormattedCreatedAt()}
+
+                                        @if(c.isInternalNote())
+                                            <span class="bg-blue-100 text-blue-800 px-2 py-[1px] rounded text-[9px] font-medium">
+                                                internal
+                                            </span>
+                                        @endif
                                     </div>
 
                                 </div>
@@ -195,9 +227,14 @@
 
                                     ${c.getMessage()}
 
-                                    <!-- 🟢 TIME -->
-                                    <div class="text-[10px] text-gray-500 mt-1">
+                                    <div class="text-[10px] text-gray-500 mt-1 flex gap-2 items-center">
                                         ${c.getFormattedCreatedAt()}
+
+                                        @if(c.isInternalNote())
+                                            <span class="bg-gray-600 text-white px-2 py-[1px] rounded text-[9px] font-medium">
+                                                internal
+                                            </span>
+                                        @endif
                                     </div>
 
                                 </div>
@@ -206,16 +243,28 @@
 
                     @endfor
                 @endif
-
             </div>
 
-            <div class="mt-2">
+
+
+            <!-- MESSAGE INPUT -->
+            <div class="mt-2 relative">
                 <form method="post" action="/tickets/${ticket.getId()}/comments"
                       class="flex flex-col gap-2">
 
                     @if(accessToken != null)
                         <input type="hidden" name="token" value="${accessToken}" />
                     @endif
+                    <button id="scrollTopBtn"
+                            type="button"
+                            onclick="scrollToTop()"
+                            class="hidden absolute right-3 top-[-40px]
+                                   w-8 h-8 flex items-center justify-center
+                                   bg-[#1a2b49]/80 text-white text-sm
+                                   rounded-full shadow-md
+                                   hover:bg-[#1a2b49] transition">
+                        ↑
+                    </button>
 
                     <textarea name="message"
                               rows="3"
@@ -259,6 +308,26 @@
 </div>
 
 <script>
+const chatContainer = document.getElementById('chatContainer');
+const scrollBtn = document.getElementById('scrollTopBtn');
+
+chatContainer.addEventListener('scroll', () => {
+    if (chatContainer.scrollTop > 100) {
+        scrollBtn.classList.remove('hidden');
+    } else {
+        scrollBtn.classList.add('hidden');
+    }
+});
+
+function scrollToTop() {
+    chatContainer.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+    });
+}
+
+
+
 function updateFileName(input) {
     const fileName = input.files.length > 0 ? input.files[0].name : "Choose file...";
     document.getElementById("file-name").textContent = fileName;
@@ -289,6 +358,13 @@ function toggleSendButton() {
         button.classList.add("bg-[#1a2b49]", "text-white", "cursor-pointer");
     }
 }
+
+window.addEventListener("load", () => {
+    const chat = document.getElementById("chatContainer");
+    if (chat) {
+        chat.scrollTop = chat.scrollHeight;
+    }
+});
 </script>
 
 `, success = success)

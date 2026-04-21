@@ -186,6 +186,24 @@ class TicketCommentServiceTest {
                     ticketCommentService.addComment(1L, dto("My comment", false), reporter, null));
         }
 
+        @Test
+        @DisplayName("Reporter cannot create an internal note")
+        void reporter_cannotCreateInternalNote() {
+            // Arrange
+            User reporter = reporterUser();
+            Ticket ticket = openTicketWithReporter(reporter);
+
+            when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+
+            // Act
+            ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
+                    ticketCommentService.addComment(1L, dto("Secret", true), reporter, null));
+
+            // Assert
+            assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
+            verify(ticketCommentRepository, never()).save(any());
+        }
+
     }
 
 }

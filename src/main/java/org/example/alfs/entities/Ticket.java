@@ -36,7 +36,7 @@ public class Ticket {
     @Column(nullable = false, length = 32)
     private TicketStatus status;
 
-    @Column(nullable = false, unique = true, length = 128, updatable = false)
+    @Column(nullable = true, unique = true, length = 128, updatable = false)
     private String reporterToken;
 
     private LocalDateTime createdAt;
@@ -47,8 +47,6 @@ public class Ticket {
     public void prePersist() {
         createdAt = LocalDateTime.now();
         if (status == null) status = TicketStatus.OPEN;
-        if (reporterToken == null || reporterToken.isBlank())
-            reporterToken = UUID.randomUUID().toString(); // Skapa token för anonyma anmälare
     }
 
     @PreUpdate

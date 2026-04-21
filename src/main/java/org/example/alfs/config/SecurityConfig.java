@@ -42,6 +42,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/auth/login").permitAll()
                         .requestMatchers("/auth/signup").permitAll()
+                        .requestMatchers("/auth/logout").permitAll()
                         .requestMatchers("/auth/hash").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()
                         .requestMatchers("/", "/startPage").permitAll()
@@ -49,6 +50,8 @@ public class SecurityConfig {
                         .requestMatchers("/error/**").permitAll()
 
                         //allow access to endpoints during development
+                        .requestMatchers("/tickets/previewTicket").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/files/upload").permitAll()
                         .requestMatchers("/css/**", "/js/**", "/images/**", "/static/**").permitAll()
                         .requestMatchers("/login", "/login-form").permitAll()
                         .requestMatchers("/signup", "/signup-form").permitAll()

@@ -32,13 +32,13 @@ public class TicketCommentService {
     }
 
     @Transactional
-    public CommentViewDTO addComment(Long ticketId, CommentCreateDTO dto, User author) {
+    public CommentViewDTO addComment(Long ticketId, CommentCreateDTO dto, User author, String token) {
         Ticket ticket = ticketRepository.findById(ticketId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
 
         boolean internalNote = dto.isInternalNote();
 
-        checkAccess(ticket, author);
+        checkAccess(ticket, author, token);
         checkInternalNotePermission(internalNote, author);
 
         TicketComment comment = new TicketComment();
@@ -52,16 +52,17 @@ public class TicketCommentService {
     }
 
     @Transactional(readOnly = true)
-    public List<CommentViewDTO> getComments(Long ticketId, User actor) {
+    public List<CommentViewDTO> getComments(Long ticketId, User user, String token) {
 
         Ticket ticket = ticketRepository.findById(ticketId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
 
-        checkAccess(ticket, actor);
+        checkAccess(ticket, user, token);
 
-        boolean isReporter = actor.getRole() == Role.REPORTER;
+        boolean isReporter = user != null && user.getRole() == Role.REPORTER;
+        boolean isAnonymous = user == null;
 
-        List<TicketComment> all = isReporter
+        List<TicketComment> all = (isReporter || isAnonymous)
                 ? ticketCommentRepository.findByTicketIdAndInternalNoteFalseOrderByCreatedAtAsc(ticketId)
                 : ticketCommentRepository.findByTicketIdOrderByCreatedAtAsc(ticketId);
 
@@ -71,32 +72,31 @@ public class TicketCommentService {
     }
 
     // helpers
-    private void checkAccess(Ticket ticket, User user) {
+    private void checkAccess(Ticket ticket, User user, String token) {
+        // Authenticated
+        if (user != null) {
+            if (user.getRole() == Role.ADMIN) return;
 
-        // If no user (anonymous) → deny access for now. Will be fixed later.
-        if (user == null) {
-            throw new ResponseStatusException(
-                    HttpStatus.UNAUTHORIZED, "Authentication required");
-        }
-
-        if (user.getRole() == Role.ADMIN) return;
-
-        if (user.getRole() == Role.INVESTIGATOR) {
-            if (ticket.getInvestigator() != null &&
+            if (user.getRole() == Role.INVESTIGATOR &&
+                    ticket.getInvestigator() != null &&
                     ticket.getInvestigator().getId().equals(user.getId())) {
                 return;
             }
-        }
 
-        if (user.getRole() == Role.REPORTER) {
-            if (ticket.getReporter() != null &&
+            if (user.getRole() == Role.REPORTER &&
+                    ticket.getReporter() != null &&
                     ticket.getReporter().getId().equals(user.getId())) {
                 return;
             }
         }
 
-        throw new ResponseStatusException(
-                HttpStatus.FORBIDDEN, "Access denied");
+        // Anonymous
+        if (token != null && !token.isBlank()
+                && token.equals(ticket.getReporterToken())) {
+            return;
+        }
+
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
     }
 
     private void checkInternalNotePermission(boolean internalNote, User author) {

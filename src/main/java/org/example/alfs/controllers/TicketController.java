@@ -1,16 +1,22 @@
 package org.example.alfs.controllers;
-
+import org.example.alfs.repositories.AttachmentRepository;
+import org.example.alfs.repositories.AuditLogRepository;
+import org.example.alfs.security.SecurityUtils;
+import org.example.alfs.services.*;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import jakarta.validation.Valid;
 import org.example.alfs.dto.ticket.TicketAssignDTO;
 import org.example.alfs.dto.ticket.TicketCreateDTO;
 import org.example.alfs.dto.ticket.TicketStatusUpdateDTO;
 import org.example.alfs.dto.ticket.TicketViewDTO;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.example.alfs.services.TicketService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
+import jakarta.servlet.http.HttpServletRequest;
 
 //TODO: Decide final routes and redirects
 
@@ -19,45 +25,88 @@ import org.springframework.web.bind.annotation.*;
 public class TicketController {
 
     private final TicketService ticketService;
+    private final TicketCommentService ticketCommentService;
+    private final AttachmentRepository attachmentRepository;
+    private final AuditLogRepository auditLogRepository;
+    private final SecurityUtils securityUtils;
+    private final UserService userService;
 
-
-    public TicketController(TicketService ticketService) {
+    public TicketController(TicketService ticketService, TicketCommentService ticketCommentService, AttachmentRepository attachmentRepository, AuditLogRepository auditLogRepository, SecurityUtils securityUtils, UserService userService) {
         this.ticketService = ticketService;
-
+        this.ticketCommentService = ticketCommentService;
+        this.attachmentRepository = attachmentRepository;
+        this.auditLogRepository = auditLogRepository;
+        this.securityUtils = securityUtils;
+        this.userService = userService;
     }
 
     //create ticket
-    @PreAuthorize("hasRole('REPORTER')") // should change later for anonymous access
+    //@PreAuthorize("hasRole('REPORTER')") // should change later for anonymous access
     @GetMapping("/create")
     public String createNewTicketForm(Model model) {
         model.addAttribute("ticket", new TicketCreateDTO());
         return "create";
     }
 
-    @PreAuthorize("hasRole('REPORTER')") // should change later for anonymous access
+    //@PreAuthorize("hasRole('REPORTER')") // should change later for anonymous access
     @PostMapping("/create")
-    public String createNewTicket(@ModelAttribute("ticket") @Valid TicketCreateDTO ticketCreateDTO,  BindingResult bindingResult, Model model) {
+    public String createNewTicket(
+            @ModelAttribute("ticket") @Valid TicketCreateDTO dto,
+            BindingResult bindingResult,
+            Model model,
+            RedirectAttributes redirectAttributes
+    ) {
         if (bindingResult.hasErrors()) {
-            model.addAttribute("ticket", ticketCreateDTO);
+            model.addAttribute("ticket", dto);
             return "create";
         }
 
-        TicketViewDTO ticket = ticketService.createNewTicket(ticketCreateDTO);
+        TicketViewDTO ticket = ticketService.createNewTicket(dto);
+        redirectAttributes.addFlashAttribute("success", "Ticket created successfully");
+
+        if (ticket.getToken() != null) {
+            return "redirect:/tickets/ticket-created?token=" + ticket.getToken();
+        }
 
         return "redirect:/tickets/" + ticket.getId();
-
     }
 
-    //view ticket by token
 
+
+
+    //view ticket by token
     @GetMapping("/token/{token}")
     public String viewTicketByToken(@PathVariable String token, Model model) {
 
-        TicketViewDTO ticket = ticketService.getTicketByToken(token);
-        model.addAttribute("ticket", ticket);
+        try {
+            TicketViewDTO ticket = ticketService.getTicketByToken(token);
 
-        return "view";
+            var user = securityUtils.getCurrentUserOrNull();
+
+            var comments = ticketCommentService.getComments(ticket.getId(), user, token);
+            var attachments = attachmentRepository.findByTicketId(ticket.getId());
+            var auditLogs = auditLogRepository.findByTicketIdOrderByCreatedAtDesc(ticket.getId());
+            var investigators = userService.getAllInvestigators();
+
+            model.addAttribute("ticket", ticket);
+            model.addAttribute("comments", comments);
+            model.addAttribute("attachments", attachments);
+            model.addAttribute("auditLogs", auditLogs);
+            model.addAttribute("investigators", investigators);
+            model.addAttribute("accessToken", token);
+
+            return "view";
+
+        } catch (ResponseStatusException ex) {
+
+            if (ex.getStatusCode() == HttpStatus.NOT_FOUND) {
+                return "redirect:/login?tokenError=true";
+            }
+
+            throw ex;
+        }
     }
+
 
     //view ticket by id
     @PreAuthorize("hasAnyRole('ADMIN','INVESTIGATOR','REPORTER')")
@@ -65,7 +114,28 @@ public class TicketController {
     public String viewTicketById(@PathVariable Long id, Model model) {
 
         TicketViewDTO ticket = ticketService.getTicketById(id);
+
+        var user = securityUtils.getCurrentUserOrNull();
+
+        // get comments
+        var comments = ticketCommentService.getComments(id, user, null);
+
+        // get attachments
+        var attachments = attachmentRepository.findByTicketId(id);
+
+        // get audit logs
+        var auditLogs = auditLogRepository.findByTicketIdOrderByCreatedAtDesc(id);
+
+        var investigators = userService.getAllInvestigators();
+
+
         model.addAttribute("ticket", ticket);
+        model.addAttribute("comments", comments);
+        model.addAttribute("attachments", attachments);
+        model.addAttribute("auditLogs", auditLogs);
+        model.addAttribute("investigators", investigators);
+        model.addAttribute("accessToken", null);
+
 
         return "view";
     }
@@ -108,6 +178,12 @@ public class TicketController {
         return "assigned-tickets";
     }
 
+
+    @GetMapping("/ticket-created")
+    public String ticketCreated(@RequestParam String token, Model model) {
+        model.addAttribute("token", token);
+        return "ticket-created";
+    }
     //create comment
     //View comment
     //upload attachment

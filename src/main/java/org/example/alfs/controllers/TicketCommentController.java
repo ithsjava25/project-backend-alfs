@@ -9,6 +9,8 @@ import org.example.alfs.services.TicketCommentService;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 @Controller
@@ -27,22 +29,29 @@ public class TicketCommentController {
     @PostMapping("/{ticketId}/comments")
     public String addComment(
             @PathVariable Long ticketId,
-            @Valid @ModelAttribute CommentCreateDTO dto
+            @Valid @ModelAttribute CommentCreateDTO dto,
+            @RequestParam(required = false) String token
     ) {
-        User user = getCurrentUserOrNull(); // unauthenticated users currently have no access; anonymous flow will be added later.
+        User user = getCurrentUserOrNull();
 
-        commentService.addComment(ticketId, dto, user);
+        commentService.addComment(ticketId, dto, user, token);
 
-        return "redirect:/view/id/" + ticketId;
+        if (token != null && !token.isBlank()) {
+            return "redirect:/tickets/token/" + token;
+        }
+
+        return "redirect:/tickets/" + ticketId;
     }
 
     @GetMapping("/{ticketId}/comments")
     @ResponseBody
-    public List<CommentViewDTO> getComments(@PathVariable Long ticketId) {
-
+    public List<CommentViewDTO> getComments(
+            @PathVariable Long ticketId,
+            @RequestParam(required = false) String token
+    ) {
         User user = getCurrentUserOrNull();
 
-        return commentService.getComments(ticketId, user);
+        return commentService.getComments(ticketId, user, token);
     }
 
     private User getCurrentUserOrNull() {

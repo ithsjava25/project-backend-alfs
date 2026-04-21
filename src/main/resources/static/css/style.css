@@ -1,27 +1,42 @@
+@import "https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap";
 
 :root {
     --state-blue: #1a2b49;
     --state-gold: #b39359;
     --state-gray: #f4f4f4;
 }
+
 body {
-    font-family: Georgia, serif;
+    font-family: Roboto, sans-serif;
     background-color: var(--state-gray);
     color: #333;
 }
+
 .header-border {
     border-bottom: 4px solid var(--state-gold);
 }
+
 .btn-primary {
     background-color: var(--state-blue);
     color: white;
     transition: all 0.3s ease;
 }
+
 .btn-primary:hover {
     background-color: #2c4471;
 }
+
 .card {
     background: white;
     border: 1px solid #ddd;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+@keyframes toast-progress {
+    from { width: 100%; }
+    to { width: 0%; }
+}
+
+.animate-toast {
+    animation: toast-progress 3s linear forwards;
 }

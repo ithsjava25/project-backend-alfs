@@ -38,27 +38,46 @@ public class TicketService {
     }
 
     //createNewTicket
-    public TicketViewDTO createNewTicket(TicketCreateDTO ticketCreateDTO) {
+    public TicketViewDTO createNewTicket(TicketCreateDTO dto) {
 
         Ticket ticket = new Ticket();
 
-        ticket.setTitle(ticketCreateDTO.getTitle());
-        ticket.setDescription(ticketCreateDTO.getDescription());
+        ticket.setTitle(dto.getTitle());
+        ticket.setDescription(dto.getDescription());
 
-        User user = requireCurrentUser();
-        ticket.setReporter(user);
+        User user = securityUtils.getCurrentUserOrNull();
 
-        Ticket savedTicket = ticketRepository.save(ticket);
+        String token = null;
 
-        return ticketMapper.entityToViewDTO(savedTicket);
+        if (user != null) {
+            ticket.setReporter(user);
+        } else {
+            token = java.util.UUID.randomUUID().toString();
+            ticket.setReporterToken(token);
+        }
+
+        Ticket saved = ticketRepository.save(ticket);
+
+        TicketViewDTO view = ticketMapper.entityToViewDTO(saved);
+
+        if (token != null) {
+            view.setToken(token);
+        }
+
+        return view;
     }
+
 
     // View by token
     public TicketViewDTO getTicketByToken(String token) {
         Ticket ticket = ticketRepository.findByReporterToken(token)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
 
-        return ticketMapper.entityToViewDTO(ticket);
+        TicketViewDTO view = ticketMapper.entityToViewDTO(ticket);
+
+        view.setToken(ticket.getReporterToken());
+
+        return view;
     }
 
     //findById
@@ -86,6 +105,18 @@ public class TicketService {
         User user = requireCurrentUser();
 
         return ticketRepository.findByInvestigatorId(user.getId())
+                .stream()
+                .map(ticketMapper::entityToViewDTO)
+                .toList();
+    }
+
+    // this is for admin page
+    public List<TicketViewDTO> getAllTickets() {
+
+        User user = requireCurrentUser();
+        requireAdmin(user);
+
+        return ticketRepository.findAll()
                 .stream()
                 .map(ticketMapper::entityToViewDTO)
                 .toList();

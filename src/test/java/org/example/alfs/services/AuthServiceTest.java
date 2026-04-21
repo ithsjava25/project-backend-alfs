@@ -87,6 +87,7 @@ class AuthServiceTest {
             User result = authService.login("username", "correct-password");
 
             // Assert
+            assertThat(result).isSameAs(user);
             assertThat(result.getUsername()).isEqualTo("username");
             assertThat(result.getPasswordHash()).isEqualTo("hashed-password");
         }

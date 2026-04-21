@@ -1,5 +1,6 @@
 @param String error
 @param Integer status
+@param String success
 
 
 @template.layout(title = "Error", content = @`
@@ -22,4 +23,4 @@
         </a>
 
     </div>
-`)
+` , success = null)

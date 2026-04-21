@@ -2,11 +2,13 @@ package org.example.alfs.services;
 
 import org.example.alfs.dto.auth.SignupRequestDTO;
 import org.example.alfs.entities.User;
+import org.example.alfs.enums.Role;
 import org.example.alfs.repositories.UserRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -18,6 +20,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -94,7 +97,7 @@ class AuthServiceTest {
     class Signup {
 
         @Test
-        @DisplayName("Username already taken should throw BadRequest")
+        @DisplayName("Username already taken should throw Bad Request")
         void whenUsernameTaken_throwsBadRequest() {
             // Arrange
             when(userRepository.findByUsername("username")).thenReturn(Optional.of(new User()));
@@ -110,6 +113,30 @@ class AuthServiceTest {
             // Assert
             assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
             assertThat(ex.getReason()).isEqualTo("Username already exists");
+        }
+
+        @Test
+        @DisplayName("Username available should save user with hashed password and reporter role")
+        void whenUsernameAvailable_savesUserWithHashedPasswordAndReporterRole() {
+            // Arrange
+            when(userRepository.findByUsername("username")).thenReturn(Optional.empty());
+            when(passwordEncoder.encode("password")).thenReturn("hashed-password");
+
+            SignupRequestDTO request = new SignupRequestDTO();
+            request.setUsername("username");
+            request.setPassword("password");
+
+            authService.signup(request);
+
+            // Act
+            ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+
+            // Assert
+            verify(userRepository).save(captor.capture());
+            User saved = captor.getValue();
+            assertThat(saved.getUsername()).isEqualTo("username");
+            assertThat(saved.getPasswordHash()).isEqualTo("hashed-password");
+            assertThat(saved.getRole()).isEqualTo(Role.REPORTER);
         }
     }
 }

@@ -204,6 +204,29 @@ class TicketCommentServiceTest {
             verify(ticketCommentRepository, never()).save(any());
         }
 
+        @Test
+        @DisplayName("Reporter who does not own the ticket should be forbidden")
+        void nonOwningReporter_shouldThrowForbidden() {
+            // Arrange
+            User reporter = reporterUser();
+
+            User otherReporter = new User();
+            otherReporter.setId(301L);
+            otherReporter.setRole(Role.REPORTER);
+
+            Ticket ticket = openTicketWithReporter(otherReporter);
+
+            when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+
+            // Act
+            ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
+                    ticketCommentService.addComment(1L, dto("Note", false), reporter, null));
+
+            // Assert
+            assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
+            verify(ticketCommentRepository, never()).save(any());
+        }
+
     }
 
 }

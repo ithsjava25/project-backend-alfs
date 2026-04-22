@@ -122,5 +122,16 @@ class AttachmentServiceTest {
             assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
             verifyNoInteractions(storageService);
         }
+
+        @Test
+        @DisplayName("Ticket not found should throw Not Found")
+        void ticketNotFound_throwsNotFound() {
+            when(ticketRepository.findById(11L)).thenReturn(Optional.empty());
+
+            ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                    () -> attachmentService.uploadToTicket(11L, file, admin, null));
+
+            assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        }
     }
 }

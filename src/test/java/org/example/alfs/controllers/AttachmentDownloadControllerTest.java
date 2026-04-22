@@ -20,10 +20,14 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.hamcrest.Matchers.containsString;
 
 class AttachmentDownloadControllerTest {
 
@@ -100,6 +104,51 @@ class AttachmentDownloadControllerTest {
                 .andExpect(status().isBadRequest());
 
         // Verify no presign call attempted due to validation failure
-        Mockito.verify(storageService, Mockito.never()).generatePresignedGetUrlWithContentDisposition(any(), any(Integer.class), any());
+        verify(storageService, never()).generatePresignedGetUrlWithContentDisposition(any(), any(Integer.class), any());
+    }
+
+    @Test
+    void presign_access_denied_returns_403_and_audit_logged() throws Exception {
+        // Arrange
+        Attachment att = sampleAttachment();
+        when(attachmentRepository.findById(1L)).thenReturn(Optional.of(att));
+        when(securityUtils.getCurrentUser()).thenReturn(sampleUser());
+        when(authorizationService.canAccessAttachment(any(User.class), any(Attachment.class))).thenReturn(false);
+        when(s3Properties.getPresignMaxTtlSeconds()).thenReturn(300);
+
+        // Act & Assert
+        mockMvc.perform(post("/api/files/1/presign")
+                        .param("ttl", "120")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isForbidden());
+
+        // Verify audit logged ACCESS_DENIED (we don't assert exact params to keep test resilient)
+        verify(auditService).log(any(), any(), any(), any(), any(), any());
+        // Ensure storage was never called
+        verify(storageService, never()).generatePresignedGetUrlWithContentDisposition(any(), any(Integer.class), any());
+    }
+
+    @Test
+    void presign_success_returns_200_with_url_and_ttl_and_audit_logged() throws Exception {
+        // Arrange
+        Attachment att = sampleAttachment();
+        when(attachmentRepository.findById(1L)).thenReturn(Optional.of(att));
+        when(securityUtils.getCurrentUser()).thenReturn(sampleUser());
+        when(authorizationService.canAccessAttachment(any(User.class), any(Attachment.class))).thenReturn(true);
+        when(s3Properties.getPresignMaxTtlSeconds()).thenReturn(300);
+        when(storageService.generatePresignedGetUrlWithContentDisposition(any(), any(Integer.class), any()))
+                .thenReturn("http://presigned.example/object?sig=abc");
+
+        // Act & Assert
+        mockMvc.perform(post("/api/files/1/presign")
+                        .param("ttl", "120")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("\"expiresInSeconds\":120")))
+                .andExpect(content().string(containsString("http://presigned.example/object?sig=abc")));
+
+        // Verify audit logged (FILE_PRESIGNED) and storage called
+        verify(auditService).log(any(), any(), any(), any(), any(), any());
+        verify(storageService).generatePresignedGetUrlWithContentDisposition(any(), any(Integer.class), any());
     }
 }

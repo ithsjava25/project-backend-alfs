@@ -8,6 +8,11 @@
 
 name: Java CI with Maven
 
+permissions:
+  contents: read
+  actions: read
+  checks: write
+
 on:
   push:
     branches: [ "main", "fix/**", "feature/**", "ci/**" ]

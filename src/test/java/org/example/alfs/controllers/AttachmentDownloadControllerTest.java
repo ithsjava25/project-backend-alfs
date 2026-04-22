@@ -20,6 +20,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.mock;
@@ -152,6 +153,50 @@ class AttachmentDownloadControllerTest {
         // Verify audit logged (FILE_PRESIGNED) and storage called
         verify(auditService).log(any(), any(), any(), any(), any(), any());
         verify(storageService).generatePresignedGetUrlWithContentDisposition(any(), any(Integer.class), any());
+    }
+
+    @Test
+    void presign_without_ttl_uses_default_120_when_max_is_higher() throws Exception {
+        // Arrange
+        Attachment att = sampleAttachment();
+        when(attachmentRepository.findById(1L)).thenReturn(Optional.of(att));
+        when(securityUtils.getCurrentUser()).thenReturn(sampleUser());
+        when(authorizationService.canAccessAttachment(any(User.class), any(Attachment.class))).thenReturn(true);
+        when(s3Properties.getPresignMaxTtlSeconds()).thenReturn(300); // max > 120, so default should be 120
+        when(storageService.generatePresignedGetUrlWithContentDisposition(any(), eq(120), any()))
+                .thenReturn("http://presigned.example/object?sig=default120");
+
+        // Act & Assert (no ttl param)
+        mockMvc.perform(post("/api/files/1/presign")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("\"expiresInSeconds\":120")))
+                .andExpect(content().string(containsString("http://presigned.example/object?sig=default120")));
+
+        // Verify storage called with ttl=120
+        verify(storageService).generatePresignedGetUrlWithContentDisposition(any(), eq(120), any());
+    }
+
+    @Test
+    void presign_without_ttl_uses_max_when_max_less_than_120() throws Exception {
+        // Arrange
+        Attachment att = sampleAttachment();
+        when(attachmentRepository.findById(1L)).thenReturn(Optional.of(att));
+        when(securityUtils.getCurrentUser()).thenReturn(sampleUser());
+        when(authorizationService.canAccessAttachment(any(User.class), any(Attachment.class))).thenReturn(true);
+        when(s3Properties.getPresignMaxTtlSeconds()).thenReturn(60); // max < 120, so default should be 60
+        when(storageService.generatePresignedGetUrlWithContentDisposition(any(), eq(60), any()))
+                .thenReturn("http://presigned.example/object?sig=default60");
+
+        // Act & Assert (no ttl param)
+        mockMvc.perform(post("/api/files/1/presign")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("\"expiresInSeconds\":60")))
+                .andExpect(content().string(containsString("http://presigned.example/object?sig=default60")));
+
+        // Verify storage called with ttl=60
+        verify(storageService).generatePresignedGetUrlWithContentDisposition(any(), eq(60), any());
     }
 
     @Test

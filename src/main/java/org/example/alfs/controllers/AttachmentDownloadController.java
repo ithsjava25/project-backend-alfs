@@ -10,6 +10,7 @@ import org.example.alfs.services.storage.MinioStorageService;
 import org.example.alfs.services.AuditService;
 import org.example.alfs.enums.AuditAction;
 import org.example.alfs.services.AuthorizationService;
+import org.example.alfs.config.S3Properties;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.ContentDisposition;
@@ -36,17 +37,20 @@ public class AttachmentDownloadController {
     private final SecurityUtils securityUtils;
     private final AuditService auditService;
     private final AuthorizationService authorizationService;
+    private final S3Properties s3Properties;
 
     public AttachmentDownloadController(AttachmentRepository attachmentRepository,
                                         MinioStorageService storageService,
                                         SecurityUtils securityUtils,
                                         AuditService auditService,
-                                        AuthorizationService authorizationService) {
+                                        AuthorizationService authorizationService,
+                                        S3Properties s3Properties) {
         this.attachmentRepository = attachmentRepository;
         this.storageService = storageService;
         this.securityUtils = securityUtils;
         this.auditService = auditService;
         this.authorizationService = authorizationService;
+        this.s3Properties = s3Properties;
     }
 
     @GetMapping("/{id}/download")
@@ -139,10 +143,18 @@ public class AttachmentDownloadController {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not allowed to access this attachment");
         }
 
-        int ttl = (ttlSeconds == null ? 120 : ttlSeconds);
-        if (ttl <= 0) ttl = 120;
-        // Skydda mot extremt långa tider (t.ex. > 1 dag) i detta tidiga steg
-        if (ttl > 86400) ttl = 86400; // 24h
+        // Validera och begränsa TTL enligt konfiguration
+        int maxTtl = Math.max(1, s3Properties.getPresignMaxTtlSeconds());
+        int defaultTtl = Math.min(120, maxTtl);
+
+        int ttl = (ttlSeconds == null ? defaultTtl : ttlSeconds);
+        if (ttl <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "ttl must be a positive integer (seconds)");
+        }
+        if (ttl > maxTtl) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "ttl exceeds max allowed (" + maxTtl + " seconds). Configure storage.s3.presign-max-ttl-seconds if needed.");
+        }
 
         final String url;
         try {

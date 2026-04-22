@@ -19,6 +19,9 @@ public class S3Properties {
     private String region;
     private boolean secure;
 
+    // Maximal giltighetstid (sekunder) för presignerade URL:er. Standard: 24h.
+    private int presignMaxTtlSeconds = 86400;
+
     public String getEndpoint() {
         return endpoint;
     }
@@ -65,5 +68,13 @@ public class S3Properties {
 
     public void setSecure(boolean secure) {
         this.secure = secure;
+    }
+
+    public int getPresignMaxTtlSeconds() {
+        return presignMaxTtlSeconds;
+    }
+
+    public void setPresignMaxTtlSeconds(int presignMaxTtlSeconds) {
+        this.presignMaxTtlSeconds = presignMaxTtlSeconds;
     }
 }

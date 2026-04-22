@@ -79,8 +79,9 @@ public class AttachmentService {
                     AuditAction.ATTACHMENT_ADDED,
                     "attachments",
                     null,
-                    "objectKey:" + objectKey,
-                    ticket
+                    att.getFileName(),
+                    ticket,
+                    user
             );
 
             return att;

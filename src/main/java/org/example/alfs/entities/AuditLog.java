@@ -51,4 +51,11 @@ public class AuditLog {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private User user;
+
+    public String getFormattedCreatedAt() {
+        if (createdAt == null) return "";
+        return createdAt.format(
+                java.time.format.DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm")
+        );
+    }
 }

@@ -4,6 +4,7 @@ import org.example.alfs.dto.ticket.TicketCreateDTO;
 import org.example.alfs.dto.ticket.TicketViewDTO;
 import org.example.alfs.entities.Ticket;
 import org.example.alfs.entities.User;
+import org.example.alfs.enums.AuditAction;
 import org.example.alfs.enums.Role;
 import org.example.alfs.enums.TicketStatus;
 import org.example.alfs.mapper.TicketMapper;
@@ -40,6 +41,9 @@ class TicketServiceTest {
     UserRepository userRepository;
     @Mock
     SecurityUtils securityUtils;
+
+    @Mock
+    AuditService auditService;
 
     @InjectMocks
     TicketService ticketService;
@@ -776,6 +780,7 @@ class TicketServiceTest {
             Ticket ticket = openTicket();
             User admin = adminUser();
             User investigator = investigatorUser();
+            investigator.setUsername("inv-user");
             ticket.setInvestigator(investigator);
             ticket.setStatus(TicketStatus.IN_PROGRESS);
 
@@ -791,6 +796,15 @@ class TicketServiceTest {
             assertNull(ticket.getInvestigator());
             assertEquals(TicketStatus.OPEN, ticket.getStatus());
             verify(ticketRepository).save(ticket);
+
+            verify(auditService).log(
+                    eq(AuditAction.UNASSIGNED),
+                    eq("investigator"),
+                    eq("inv-user"),
+                    isNull(),
+                    any(),
+                    eq(admin)
+            );
         }
 
         @Test

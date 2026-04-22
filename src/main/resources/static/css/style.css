@@ -40,3 +40,27 @@ body {
 .animate-toast {
     animation: toast-progress 3s linear forwards;
 }
+
+
+/* Custom scrollbar for chat container (Chrome, Edge, Safari) */
+#chatContainer::-webkit-scrollbar {
+    width: 6px;
+}
+
+#chatContainer::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+#chatContainer::-webkit-scrollbar-thumb {
+    background-color: var(--state-gold);
+    border-radius: 10px;
+}
+
+#chatContainer::-webkit-scrollbar-thumb:hover {
+    background-color: #a88445;
+}
+
+#chatContainer {
+    scrollbar-width: thin;
+    scrollbar-color: var(--state-gold) transparent;
+}

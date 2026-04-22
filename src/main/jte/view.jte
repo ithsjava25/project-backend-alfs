@@ -161,49 +161,123 @@
         </div>
 
         <!-- CHAT -->
-        <div class="col-span-2 bg-white p-4 rounded shadow flex flex-col h-[600px]">
+        <div class="col-span-2 bg-white p-4 rounded shadow flex flex-col h-[600px] relative">
 
-            <div class="flex-1 overflow-y-auto mb-4 space-y-4">
+            <!-- CHAT SCROLL AREA -->
+            <div id="chatContainer" class="flex-1 overflow-y-auto mb-4 space-y-4 relative">
 
+                <!-- TICKET DESCRIPTION (ALWAYS FIRST) -->
+                <div class="flex justify-start">
+                    <div class="bg-white border border-gray-300 shadow-sm p-3 rounded max-w-[70%] break-words">
+
+                        <div class="text-xs font-bold text-yellow-800 mb-1">
+                            Ticket Description
+                        </div>
+
+                        <div class="text-xs font-bold mb-1">
+                            @if(username != null)
+                                ${username}
+                            @else
+                                Anonymous
+                            @endif
+                        </div>
+
+                        ${ticket.getDescription()}
+
+                        <div class="text-[10px] text-gray-500 mt-1">
+                            ${ticket.getFormattedCreatedAt()}
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- COMMENTS -->
                 @if(comments != null)
                     @for(var c : comments)
 
                         @if(c.getAuthor().equals(username))
                             <div class="flex justify-end">
                                 <div class="bg-blue-500 text-white p-3 rounded max-w-[70%] break-words">
+
                                     <div class="text-xs font-bold text-right mb-1">
                                         ${c.getAuthor()}
                                     </div>
+
                                     ${c.getMessage()}
+
+                                    <div class="text-[10px] text-blue-200 mt-1 text-right flex justify-end gap-2 items-center">
+                                        ${c.getFormattedCreatedAt()}
+
+                                        @if(c.isInternalNote())
+                                            <span class="bg-blue-100 text-blue-800 px-2 py-[1px] rounded text-[9px] font-medium">
+                                                internal
+                                            </span>
+                                        @endif
+                                    </div>
+
                                 </div>
                             </div>
                         @else
                             <div class="flex justify-start">
                                 <div class="bg-gray-200 p-3 rounded max-w-[70%] break-words">
-                                    <div class="text-xs font-bold">${c.getAuthor()}</div>
+
+                                    <div class="text-xs font-bold">
+                                        ${c.getAuthor()}
+                                    </div>
+
                                     ${c.getMessage()}
+
+                                    <div class="text-[10px] text-gray-500 mt-1 flex gap-2 items-center">
+                                        ${c.getFormattedCreatedAt()}
+
+                                        @if(c.isInternalNote())
+                                            <span class="bg-gray-600 text-white px-2 py-[1px] rounded text-[9px] font-medium">
+                                                internal
+                                            </span>
+                                        @endif
+                                    </div>
+
                                 </div>
                             </div>
                         @endif
 
                     @endfor
                 @endif
-
             </div>
 
-            <div class="mt-2">
+
+
+            <!-- MESSAGE INPUT -->
+            <div class="mt-2 relative">
                 <form method="post" action="/tickets/${ticket.getId()}/comments"
                       class="flex flex-col gap-2">
 
                     @if(accessToken != null)
                         <input type="hidden" name="token" value="${accessToken}" />
                     @endif
+                    <button id="scrollTopBtn"
+                            type="button"
+                            onclick="scrollToTop()"
+                            class="hidden absolute right-3 top-[-40px]
+                                   w-8 h-8 flex items-center justify-center
+                                   bg-[#1a2b49]/80 text-white text-sm
+                                   rounded-full shadow-md
+                                   hover:bg-[#1a2b49] transition">
+                        ↑
+                    </button>
 
                     <textarea name="message"
                               rows="3"
                               oninput="toggleSendButton()"
                               class="w-full border rounded px-3 py-2 text-sm resize-none"
                               placeholder="Type message..."></textarea>
+
+                    @if("ADMIN".equals(role) || "INVESTIGATOR".equals(role))
+                        <label class="flex items-center gap-2 text-xs text-gray-600">
+                            <input type="checkbox" name="internalNote" value="true" />
+                            Internal message
+                        </label>
+                    @endif
 
                     <div class="flex justify-end">
                         <button id="sendBtn"
@@ -214,7 +288,6 @@
                     </div>
                 </form>
             </div>
-
         </div>
 
         <!-- AUDIT LOGS -->
@@ -223,9 +296,49 @@
 
             @if(auditLogs != null)
                 @for(var log : auditLogs)
-                    <div class="text-sm mb-2">
-                        ${log.getAction()}
+
+                    <div class="mb-3 p-2 border-b border-gray-100">
+
+                        <!-- who -->
+                        <div class="text-xs font-semibold text-gray-800">
+                            ${log.getUser() != null ? log.getUser().getUsername() : "System"}
+                        </div>
+
+                        <!-- what -->
+                        <div class="text-sm text-gray-700">
+                            @if(log.getAction() == org.example.alfs.enums.AuditAction.ATTACHMENT_ADDED)
+                                File uploaded
+                            @elseif(log.getAction() == org.example.alfs.enums.AuditAction.STATUS_CHANGED)
+                                Status updated
+                            @elseif(log.getAction() == org.example.alfs.enums.AuditAction.ASSIGNED)
+                                Investigator assigned
+                            @elseif(log.getAction() == org.example.alfs.enums.AuditAction.UNASSIGNED)
+                                Investigator unassigned
+                            @elseif(log.getAction() == org.example.alfs.enums.AuditAction.CREATED)
+                                Ticket created
+                            @else
+                                ${log.getAction().name().replace("_", " ")}
+                            @endif
+                        </div>
+
+                        @if(log.getFieldName() != null)
+                            <div class="text-xs text-gray-500">
+                                <span class="font-medium">
+                                    ${log.getFieldName()}:
+                                </span>
+                                @if(log.getOldValue() != null)
+                                    ${log.getOldValue()} →
+                                @endif
+                                ${log.getNewValue()}
+                            </div>
+                        @endif
+
+                        <!-- when -->
+                        <div class="text-[10px] text-gray-400">
+                            ${log.getFormattedCreatedAt()}
+                        </div>
                     </div>
+
                 @endfor
             @endif
         </div>
@@ -235,6 +348,26 @@
 </div>
 
 <script>
+const chatContainer = document.getElementById('chatContainer');
+const scrollBtn = document.getElementById('scrollTopBtn');
+
+chatContainer.addEventListener('scroll', () => {
+    if (chatContainer.scrollTop > 100) {
+        scrollBtn.classList.remove('hidden');
+    } else {
+        scrollBtn.classList.add('hidden');
+    }
+});
+
+function scrollToTop() {
+    chatContainer.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+    });
+}
+
+
+
 function updateFileName(input) {
     const fileName = input.files.length > 0 ? input.files[0].name : "Choose file...";
     document.getElementById("file-name").textContent = fileName;
@@ -255,14 +388,23 @@ function toggleSendButton() {
 
     if (textarea.value.trim() === "") {
         button.disabled = true;
-        button.classList.remove("bg-[#1a2b49]", "text-white");
-        button.classList.add("bg-gray-300", "text-gray-500");
+
+        button.classList.remove("bg-[#1a2b49]", "text-white", "cursor-pointer");
+        button.classList.add("bg-gray-300", "text-gray-500", "cursor-not-allowed");
     } else {
         button.disabled = false;
-        button.classList.remove("bg-gray-300", "text-gray-500");
-        button.classList.add("bg-[#1a2b49]", "text-white");
+
+        button.classList.remove("bg-gray-300", "text-gray-500", "cursor-not-allowed");
+        button.classList.add("bg-[#1a2b49]", "text-white", "cursor-pointer");
     }
 }
+
+window.addEventListener("load", () => {
+    const chat = document.getElementById("chatContainer");
+    if (chat) {
+        chat.scrollTop = chat.scrollHeight;
+    }
+});
 </script>
 
 `, success = success)

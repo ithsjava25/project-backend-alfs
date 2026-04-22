@@ -45,23 +45,43 @@ public class SecurityConfig {
                         .requestMatchers("/auth/logout").permitAll()
                         .requestMatchers("/auth/hash").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()
-                        .requestMatchers("/startPage", "/").permitAll()
-                        .requestMatchers("/tickets/create").permitAll()
-                        .requestMatchers("/tickets/previewTicket").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/files/upload").permitAll()
-
+                        .requestMatchers("/", "/startPage").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/tickets/create").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/tickets/create").permitAll()
+                        .requestMatchers("/tickets/ticket-created").permitAll()
+                        .requestMatchers("/tickets/token/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/tickets/*/comments").permitAll()
+                        .requestMatchers("/error/**").permitAll()
+                                       
                         //swagger
                         .requestMatchers("/swagger-ui/**").permitAll()
                         .requestMatchers("/v3/api-docs/**").permitAll()
                         .requestMatchers("/swagger-ui.html").permitAll()
 
                         //allow access to endpoints during development
-                        .requestMatchers("/tickets/**").permitAll()
+                        .requestMatchers("/tickets/previewTicket").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/files/upload").permitAll()
                         .requestMatchers("/css/**", "/js/**", "/images/**", "/static/**").permitAll()
                         .requestMatchers("/login", "/login-form").permitAll()
                         .requestMatchers("/signup", "/signup-form").permitAll()
                         .anyRequest().authenticated()
                 )
+
+                .exceptionHandling(exception -> exception
+
+                        // Use custom error page for 403 (Spring Security access denied)
+                        .accessDeniedHandler((request, response, ex) -> {
+                            request.getRequestDispatcher("/error/403")
+                                    .forward(request, response);
+                        })
+
+                        // Use custom error page for 401 (unauthorized)
+                        .authenticationEntryPoint((request, response, ex) -> {
+                            request.getRequestDispatcher("/error/401")
+                                    .forward(request, response);
+                        })
+                )
+
 
                 // disable DEFAULT LOGIN
                 .formLogin(form -> form.disable())

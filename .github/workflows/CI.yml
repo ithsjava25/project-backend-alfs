@@ -9,6 +9,8 @@
 name: Java CI with Maven
 
 on:
+  push:
+    branches: [ "main", "fix/**", "feature/**", "ci/**" ]
   pull_request:
     branches: [ "main" ]
 
@@ -27,4 +29,4 @@ jobs:
           cache: maven
 
       - name: Build
-        run: mvn -B package
+        run: mvn -B clean verify

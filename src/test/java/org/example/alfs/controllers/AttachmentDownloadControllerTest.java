@@ -10,46 +10,54 @@ import org.example.alfs.security.SecurityUtils;
 import org.example.alfs.services.AuditService;
 import org.example.alfs.services.AuthorizationService;
 import org.example.alfs.services.storage.MinioStorageService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(controllers = AttachmentDownloadController.class)
-@AutoConfigureMockMvc(addFilters = false)
 class AttachmentDownloadControllerTest {
 
-    @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
     private AttachmentRepository attachmentRepository;
-
-    @MockBean
     private MinioStorageService storageService;
-
-    @MockBean
     private SecurityUtils securityUtils;
-
-    @MockBean
     private AuditService auditService;
-
-    @MockBean
     private AuthorizationService authorizationService;
-
-    @MockBean
     private S3Properties s3Properties;
+
+    @BeforeEach
+    void setup() {
+        attachmentRepository = mock(AttachmentRepository.class);
+        storageService = mock(MinioStorageService.class);
+        securityUtils = mock(SecurityUtils.class);
+        auditService = mock(AuditService.class);
+        authorizationService = mock(AuthorizationService.class);
+        s3Properties = mock(S3Properties.class);
+
+        AttachmentDownloadController controller = new AttachmentDownloadController(
+                attachmentRepository,
+                storageService,
+                securityUtils,
+                auditService,
+                authorizationService,
+                s3Properties
+        );
+
+        mockMvc = MockMvcBuilders.standaloneSetup(controller)
+                .setControllerAdvice()
+                .build();
+    }
 
     private static Attachment sampleAttachment() {
         Ticket t = new Ticket();

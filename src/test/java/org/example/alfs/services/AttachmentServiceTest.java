@@ -78,8 +78,8 @@ class AttachmentServiceTest {
     class UploadToTicketTest {
 
         @Test
-        @DisplayName("Authenticated user uploads to valid ticket")
-        void authenticatedUser_shouldUploadSuccessfully_whenValidTicket() throws Exception {
+        @DisplayName("Authenticated reporter uploads to valid ticket")
+        void authenticatedReporter_withValidTicket_shouldUploadSuccessfully() throws Exception {
             when(ticketRepository.findById(10L)).thenReturn(Optional.of(ticket));
             when(storageService.upload(file)).thenReturn("s3-key");
             when(file.getOriginalFilename()).thenReturn("report.pdf");
@@ -92,8 +92,8 @@ class AttachmentServiceTest {
         }
 
         @Test
-        @DisplayName("Anonymous user uploads to valid ticket")
-        void anonymousUser_shouldUploadSuccessfully_whenValidToken() throws Exception {
+        @DisplayName("Anonymous reporter uploads to valid ticket")
+        void anonymousReporter_withValidToken_shouldUploadSuccessfully() throws Exception {
             when(ticketRepository.findByReporterToken("valid-token")).thenReturn(Optional.of(ticket));
             when(storageService.upload(file)).thenReturn("s3-key");
             when(file.getOriginalFilename()).thenReturn("evidence.pdf");
@@ -105,8 +105,8 @@ class AttachmentServiceTest {
         }
 
         @Test
-        @DisplayName("Anonymous user with no token should throw Unauthorized")
-        void anonymousUser_missingToken_throwsUnauthorized() {
+        @DisplayName("Anonymous reporter with no token should throw Unauthorized")
+        void anonymousReporter_withMissingToken_throwsUnauthorized() {
             ResponseStatusException ex = assertThrows(ResponseStatusException.class,
                     () -> attachmentService.uploadToTicket(10L, file, null, null));
 
@@ -115,8 +115,8 @@ class AttachmentServiceTest {
         }
 
         @Test
-        @DisplayName("Anonymous user with blank token should throw Unauthorized")
-        void anonymousUser_blankToken_throwsUnauthorized() {
+        @DisplayName("Anonymous reporter with blank token should throw Unauthorized")
+        void anonymousReporter_withBlankToken_throwsUnauthorized() {
             ResponseStatusException ex = assertThrows(ResponseStatusException.class,
                     () -> attachmentService.uploadToTicket(10L, file, null, "   "));
 
@@ -227,6 +227,28 @@ class AttachmentServiceTest {
                     () -> attachmentService.uploadToTicket(10L, file, otherReporter, null));
 
             assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        }
+
+        @Test
+        @DisplayName("Anonymous reporter with valid token allowed")
+        void anonymousReporter_withCorrectToken_allowed() throws Exception {
+            when(ticketRepository.findByReporterToken("valid-token")).thenReturn(Optional.of(ticket));
+            when(storageService.upload(file)).thenReturn("s3-key");
+            when(file.getOriginalFilename()).thenReturn("f.pdf");
+
+            assertDoesNotThrow(() ->
+                    attachmentService.uploadToTicket(10L, file, null, "valid-token"));
+        }
+
+        @Test
+        @DisplayName("Anonymous reporter with invalid token denied")
+        void anonymousReporter_withWrongToken_throwsUnauthorized() {
+            when(ticketRepository.findByReporterToken("wrong-token")).thenReturn(Optional.empty());
+
+            ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                    () -> attachmentService.uploadToTicket(10L, file, null, "wrong-token"));
+
+            assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
         }
     }
 }

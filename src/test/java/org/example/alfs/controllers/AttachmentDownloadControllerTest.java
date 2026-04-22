@@ -25,8 +25,10 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.hamcrest.Matchers.containsString;
 
 class AttachmentDownloadControllerTest {
@@ -150,5 +152,61 @@ class AttachmentDownloadControllerTest {
         // Verify audit logged (FILE_PRESIGNED) and storage called
         verify(auditService).log(any(), any(), any(), any(), any(), any());
         verify(storageService).generatePresignedGetUrlWithContentDisposition(any(), any(Integer.class), any());
+    }
+
+    @Test
+    void download_access_denied_returns_403_and_audit_logged() throws Exception {
+        // Arrange
+        Attachment att = sampleAttachment();
+        when(attachmentRepository.findById(1L)).thenReturn(Optional.of(att));
+        when(securityUtils.getCurrentUser()).thenReturn(sampleUser());
+        when(authorizationService.canAccessAttachment(any(User.class), any(Attachment.class))).thenReturn(false);
+
+        // Act & Assert
+        mockMvc.perform(get("/api/files/1/download"))
+                .andExpect(status().isForbidden());
+
+        verify(auditService).log(any(), any(), any(), any(), any(), any());
+        verify(storageService, never()).download(any());
+    }
+
+    @Test
+    void download_success_returns_200_and_sets_content_disposition_and_audit_logged() throws Exception {
+        // Arrange
+        Attachment att = sampleAttachment();
+        when(attachmentRepository.findById(1L)).thenReturn(Optional.of(att));
+        when(securityUtils.getCurrentUser()).thenReturn(sampleUser());
+        when(authorizationService.canAccessAttachment(any(User.class), any(Attachment.class))).thenReturn(true);
+
+        // Mock GetObjectResponse as an InputStream
+        io.minio.GetObjectResponse objectResponse = Mockito.mock(io.minio.GetObjectResponse.class);
+        when(objectResponse.read()).thenReturn(-1); // no content read during response build
+        // headers() returns okhttp3.Headers in newer MinIO; we can just return null-safe behavior by returning null for get("Content-Length")
+        var headersMock = new okhttp3.Headers.Builder().build();
+        when(objectResponse.headers()).thenReturn(headersMock);
+
+        when(storageService.download(any())).thenReturn(objectResponse);
+
+        // Act & Assert
+        mockMvc.perform(get("/api/files/1/download"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Disposition", containsString("filename=\"test.pdf\"")));
+
+        verify(auditService).log(any(), any(), any(), any(), any(), any());
+        verify(storageService).download(any());
+    }
+
+    @Test
+    void download_storage_failure_returns_502() throws Exception {
+        // Arrange
+        Attachment att = sampleAttachment();
+        when(attachmentRepository.findById(1L)).thenReturn(Optional.of(att));
+        when(securityUtils.getCurrentUser()).thenReturn(sampleUser());
+        when(authorizationService.canAccessAttachment(any(User.class), any(Attachment.class))).thenReturn(true);
+        when(storageService.download(any())).thenThrow(new RuntimeException("boom"));
+
+        // Act & Assert
+        mockMvc.perform(get("/api/files/1/download"))
+                .andExpect(status().isBadGateway());
     }
 }

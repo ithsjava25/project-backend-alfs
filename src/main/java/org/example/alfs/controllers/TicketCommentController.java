@@ -1,5 +1,11 @@
 package org.example.alfs.controllers;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
 import org.example.alfs.dto.comment.CommentCreateDTO;
 import org.example.alfs.dto.comment.CommentViewDTO;
@@ -43,12 +49,33 @@ public class TicketCommentController {
         return "redirect:/tickets/" + ticketId;
     }
 
+    @Operation(
+            summary = "Get comments for a ticket",
+            description = "Returns all comments for a ticket. Supports both authenticated users and anonymous users via token."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Comments retrieved successfully",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = CommentViewDTO.class)
+                    )
+            ),
+            @ApiResponse(responseCode = "403", description = "Access denied"),
+            @ApiResponse(responseCode = "404", description = "Ticket not found")
+    })
     @GetMapping("/{ticketId}/comments")
     @ResponseBody
     public List<CommentViewDTO> getComments(
+
+            @Parameter(description = "ID of the ticket", example = "1")
             @PathVariable Long ticketId,
+
+            @Parameter(description = "Optional token for anonymous access")
             @RequestParam(required = false) String token
-    ) {
+    )
+    {
         User user = getCurrentUserOrNull();
 
         return commentService.getComments(ticketId, user, token);

@@ -1,6 +1,10 @@
 package org.example.alfs.controllers;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import org.example.alfs.dto.auth.LoginRequestDTO;
@@ -48,7 +52,22 @@ public class AuthController {
      * This endpoint is mainly used for API testing (e.g. Postman).
      * For browser-based login, see AuthViewController.
      */
-    @Operation(summary = "Log in a user", description = "Authenticate with username and password to receive a JWT token.")
+    @Operation(
+            summary = "Log in a user",
+            description = "Authenticate with username and password and receive a JWT token"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Login successful",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = LoginResponseDTO.class)
+                    )
+            ),
+            @ApiResponse(responseCode = "401", description = "Invalid username or password"),
+            @ApiResponse(responseCode = "400", description = "Invalid request body")
+    })
     @PostMapping("/login")
     public LoginResponseDTO login(@Valid @RequestBody LoginRequestDTO request) {
 
@@ -66,7 +85,15 @@ public class AuthController {
     /**
      * Handles user signup by validating input and creating a new account.
      */
-    @Operation(summary = "Sign up new user", description = "Makes a new user with username and password")
+    @Operation(
+            summary = "Sign up new user",
+            description = "Create a new user account with username and password"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "User created successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid input"),
+            @ApiResponse(responseCode = "409", description = "Username already exists")
+    })
     @PostMapping("/signup")
     public void signup(@Valid @RequestBody SignupRequestDTO request) {
         authService.signup(request);

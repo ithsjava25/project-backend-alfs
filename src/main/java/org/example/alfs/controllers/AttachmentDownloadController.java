@@ -2,6 +2,7 @@ package org.example.alfs.controllers;
 
 import io.minio.GetObjectResponse;
 import org.example.alfs.entities.Attachment;
+import org.example.alfs.dto.attachment.PresignedUrlResponseDTO;
 import org.example.alfs.repositories.AttachmentRepository;
 import org.example.alfs.services.storage.MinioStorageService;
 import org.springframework.core.io.InputStreamResource;
@@ -14,6 +15,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -67,5 +70,32 @@ public class AttachmentDownloadController {
         }
 
         return builder.body(resource);
+    }
+
+    /**
+     * Minimal presign-endpoint (ingen auth ännu). Returnerar en tidsbegränsad URL
+     * för direkt nedladdning från MinIO.
+     *
+     * Steg 1 för vecka 2: endast 200/404 och enkel TTL-hantering.
+     */
+    @PostMapping("/{id}/presign")
+    public ResponseEntity<PresignedUrlResponseDTO> presign(@PathVariable Long id,
+                                                           @RequestParam(name = "ttl", required = false) Integer ttlSeconds) {
+        Attachment att = attachmentRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Attachment not found: " + id));
+
+        int ttl = (ttlSeconds == null ? 120 : ttlSeconds);
+        if (ttl <= 0) ttl = 120;
+        // Skydda mot extremt långa tider (t.ex. > 1 dag) i detta tidiga steg
+        if (ttl > 86400) ttl = 86400; // 24h
+
+        final String url;
+        try {
+            url = storageService.generatePresignedGetUrl(att.getS3Key(), ttl);
+        } catch (Exception ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Failed to create presigned URL", ex);
+        }
+
+        return ResponseEntity.ok(new PresignedUrlResponseDTO(url, ttl));
     }
 }

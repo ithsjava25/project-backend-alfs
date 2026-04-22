@@ -84,10 +84,11 @@ class AttachmentServiceTest {
             when(storageService.upload(file)).thenReturn("s3-key");
             when(file.getOriginalFilename()).thenReturn("report.pdf");
 
-            Attachment result = attachmentService.uploadToTicket(10L, file, admin, null);
+            Attachment result = attachmentService.uploadToTicket(10L, file, reporter, null);
 
             assertThat(result.getFileName()).isEqualTo("report.pdf");
             assertThat(result.getS3Key()).isEqualTo("s3-key");
+            assertThat(result.getUploadedBy()).isSameAs(reporter);
             verify(attachmentRepository).save(any(Attachment.class));
         }
 
@@ -241,8 +242,8 @@ class AttachmentServiceTest {
         }
 
         @Test
-        @DisplayName("Anonymous reporter with invalid token denied")
-        void anonymousReporter_withWrongToken_throwsUnauthorized() {
+        @DisplayName("Anonymous reporter with invalid token should return Not Found")
+        void anonymousReporter_withWrongToken_throwsNotFound() {
             when(ticketRepository.findByReporterToken("wrong-token")).thenReturn(Optional.empty());
 
             ResponseStatusException ex = assertThrows(ResponseStatusException.class,

@@ -55,10 +55,7 @@ public class AttachmentDownloadController {
     })
     public ResponseEntity<Resource> download(
             @Parameter(description = "ID of the attachment", example = "1")
-            @PathVariable Long id,
-
-            @Parameter(description = "Optional access token")
-            @RequestParam(required = false) String token
+            @PathVariable Long id
     ) {
 
         Attachment att = attachmentRepository.findById(id)

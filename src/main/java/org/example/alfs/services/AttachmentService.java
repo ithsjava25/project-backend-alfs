@@ -96,6 +96,7 @@ public class AttachmentService {
         }
     }
 
+    // TODO: Move to a separate service? Or delete? No usages found.
     private User getCurrentUserOrNull() {
         try {
             return securityUtils.getCurrentUser();

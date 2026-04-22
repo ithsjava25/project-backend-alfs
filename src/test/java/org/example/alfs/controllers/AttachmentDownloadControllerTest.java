@@ -190,7 +190,8 @@ class AttachmentDownloadControllerTest {
         // Act & Assert
         mockMvc.perform(get("/api/files/1/download"))
                 .andExpect(status().isOk())
-                .andExpect(header().string("Content-Disposition", containsString("filename=\"test.pdf\"")));
+                // Relaxed assertion to support RFC 5987 filename* and encoded variants used by Spring
+                .andExpect(header().string("Content-Disposition", containsString("test.pdf")));
 
         verify(auditService).log(any(), any(), any(), any(), any(), any());
         verify(storageService).download(any());
@@ -208,5 +209,63 @@ class AttachmentDownloadControllerTest {
         // Act & Assert
         mockMvc.perform(get("/api/files/1/download"))
                 .andExpect(status().isBadGateway());
+    }
+
+    @Test
+    void presign_when_attachment_not_found_returns_404() throws Exception {
+        // Arrange
+        when(attachmentRepository.findById(404L)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        mockMvc.perform(post("/api/files/404/presign")
+                        .param("ttl", "60")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void download_when_attachment_not_found_returns_404() throws Exception {
+        // Arrange
+        when(attachmentRepository.findById(404L)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        mockMvc.perform(get("/api/files/404/download"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void presign_with_zero_ttl_returns_400() throws Exception {
+        // Arrange
+        Attachment att = sampleAttachment();
+        when(attachmentRepository.findById(1L)).thenReturn(Optional.of(att));
+        when(securityUtils.getCurrentUser()).thenReturn(sampleUser());
+        when(authorizationService.canAccessAttachment(any(User.class), any(Attachment.class))).thenReturn(true);
+        when(s3Properties.getPresignMaxTtlSeconds()).thenReturn(300);
+
+        // Act & Assert
+        mockMvc.perform(post("/api/files/1/presign")
+                        .param("ttl", "0")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest());
+
+        verify(storageService, never()).generatePresignedGetUrlWithContentDisposition(any(), any(Integer.class), any());
+    }
+
+    @Test
+    void presign_with_negative_ttl_returns_400() throws Exception {
+        // Arrange
+        Attachment att = sampleAttachment();
+        when(attachmentRepository.findById(1L)).thenReturn(Optional.of(att));
+        when(securityUtils.getCurrentUser()).thenReturn(sampleUser());
+        when(authorizationService.canAccessAttachment(any(User.class), any(Attachment.class))).thenReturn(true);
+        when(s3Properties.getPresignMaxTtlSeconds()).thenReturn(300);
+
+        // Act & Assert
+        mockMvc.perform(post("/api/files/1/presign")
+                        .param("ttl", "-5")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest());
+
+        verify(storageService, never()).generatePresignedGetUrlWithContentDisposition(any(), any(Integer.class), any());
     }
 }

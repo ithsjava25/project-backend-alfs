@@ -85,4 +85,23 @@ class AttachmentControllerUploadTest {
 
         verify(attachmentService, times(1)).uploadToTicket(eq(1L), any(), isNull(), isNull());
     }
+
+    @Test
+    void upload_with_token_should_redirect_to_token_url_and_call_service_with_token() throws Exception {
+        // Arrange
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "tokenfile.pdf", MediaType.APPLICATION_PDF_VALUE, "hello token".getBytes()
+        );
+
+        // Act & Assert
+        mockMvc.perform(multipart("/api/files/upload")
+                        .file(file)
+                        .param("ticketId", "1")
+                        .param("token", "abc123"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/tickets/token/abc123"));
+
+        // Verify the service is called with the provided token and null user (dev flow allows anonymous)
+        verify(attachmentService, times(1)).uploadToTicket(eq(1L), any(), isNull(), eq("abc123"));
+    }
 }

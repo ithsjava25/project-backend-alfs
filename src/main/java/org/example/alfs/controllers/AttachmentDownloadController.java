@@ -8,6 +8,8 @@ import org.example.alfs.security.SecurityUtils;
 import org.example.alfs.entities.User;
 import org.example.alfs.enums.Role;
 import org.example.alfs.services.storage.MinioStorageService;
+import org.example.alfs.services.AuditService;
+import org.example.alfs.enums.AuditAction;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.ContentDisposition;
@@ -32,13 +34,16 @@ public class AttachmentDownloadController {
     private final AttachmentRepository attachmentRepository;
     private final MinioStorageService storageService;
     private final SecurityUtils securityUtils;
+    private final AuditService auditService;
 
     public AttachmentDownloadController(AttachmentRepository attachmentRepository,
                                         MinioStorageService storageService,
-                                        SecurityUtils securityUtils) {
+                                        SecurityUtils securityUtils,
+                                        AuditService auditService) {
         this.attachmentRepository = attachmentRepository;
         this.storageService = storageService;
         this.securityUtils = securityUtils;
+        this.auditService = auditService;
     }
 
     @GetMapping("/{id}/download")
@@ -95,6 +100,15 @@ public class AttachmentDownloadController {
         // - REPORTER får endast presigna om hen äger ärendet (ticket.reporter)
         User current = securityUtils.getCurrentUser();
         if (!canPresign(current, att)) {
+            // Audit: access denied to presign for this attachment
+            auditService.log(
+                    AuditAction.ACCESS_DENIED,
+                    "attachment",
+                    null,
+                    "presign denied: attachmentId=" + att.getId(),
+                    att.getTicket(),
+                    current
+            );
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not allowed to access this attachment");
         }
 
@@ -105,10 +119,21 @@ public class AttachmentDownloadController {
 
         final String url;
         try {
-            url = storageService.generatePresignedGetUrl(att.getS3Key(), ttl);
+            // Använd variant som sätter Content-Disposition till originalfilnamnet
+            url = storageService.generatePresignedGetUrlWithContentDisposition(att.getS3Key(), ttl, att.getFileName());
         } catch (Exception ex) {
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Failed to create presigned URL", ex);
         }
+
+        // Audit: presigned URL issued
+        auditService.log(
+                AuditAction.FILE_PRESIGNED,
+                "attachment",
+                null,
+                "presign issued: attachmentId=" + att.getId() + ", ttl=" + ttl,
+                att.getTicket(),
+                current
+        );
 
         return ResponseEntity.ok(new PresignedUrlResponseDTO(url, ttl));
     }

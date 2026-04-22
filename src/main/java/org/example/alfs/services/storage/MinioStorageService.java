@@ -12,7 +12,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 public class MinioStorageService {
@@ -83,6 +87,29 @@ public class MinioStorageService {
                 .bucket(props.getBucket())
                 .object(objectKey)
                 .expiry(ttlSeconds)
+                .build();
+        return minioClient.getPresignedObjectUrl(args);
+    }
+
+    /**
+     * Variant som inkluderar response-content-disposition så att webbläsaren föreslår originalfilnamn.
+     */
+    public String generatePresignedGetUrlWithContentDisposition(String objectKey, int ttlSeconds, String fileName) throws Exception {
+        if (ttlSeconds <= 0) {
+            ttlSeconds = 60;
+        }
+        String safeName = (fileName == null || fileName.isBlank()) ? "file" : fileName;
+        // S3-kompatibla tjänster accepterar "response-content-disposition" som query-param
+        String disposition = "attachment; filename=\"" + safeName + "\"; filename*=UTF-8''" + URLEncoder.encode(safeName, StandardCharsets.UTF_8);
+        Map<String, String> extra = new HashMap<>();
+        extra.put("response-content-disposition", disposition);
+
+        GetPresignedObjectUrlArgs args = GetPresignedObjectUrlArgs.builder()
+                .method(Method.GET)
+                .bucket(props.getBucket())
+                .object(objectKey)
+                .expiry(ttlSeconds)
+                .extraQueryParams(extra)
                 .build();
         return minioClient.getPresignedObjectUrl(args);
     }

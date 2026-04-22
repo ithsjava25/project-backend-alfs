@@ -6,10 +6,10 @@ import org.example.alfs.dto.attachment.PresignedUrlResponseDTO;
 import org.example.alfs.repositories.AttachmentRepository;
 import org.example.alfs.security.SecurityUtils;
 import org.example.alfs.entities.User;
-import org.example.alfs.enums.Role;
 import org.example.alfs.services.storage.MinioStorageService;
 import org.example.alfs.services.AuditService;
 import org.example.alfs.enums.AuditAction;
+import org.example.alfs.services.AuthorizationService;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.ContentDisposition;
@@ -35,21 +35,48 @@ public class AttachmentDownloadController {
     private final MinioStorageService storageService;
     private final SecurityUtils securityUtils;
     private final AuditService auditService;
+    private final AuthorizationService authorizationService;
 
     public AttachmentDownloadController(AttachmentRepository attachmentRepository,
                                         MinioStorageService storageService,
                                         SecurityUtils securityUtils,
-                                        AuditService auditService) {
+                                        AuditService auditService,
+                                        AuthorizationService authorizationService) {
         this.attachmentRepository = attachmentRepository;
         this.storageService = storageService;
         this.securityUtils = securityUtils;
         this.auditService = auditService;
+        this.authorizationService = authorizationService;
     }
 
     @GetMapping("/{id}/download")
     public ResponseEntity<Resource> download(@PathVariable Long id) {
         Attachment att = attachmentRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Attachment not found: " + id));
+
+        // Säkerställ att den som laddar ner har rättigheter (samma regler som för presign)
+        User current = securityUtils.getCurrentUser();
+        if (!authorizationService.canAccessAttachment(current, att)) {
+            auditService.log(
+                    AuditAction.ACCESS_DENIED,
+                    "attachment",
+                    null,
+                    "download denied: attachmentId=" + att.getId(),
+                    att.getTicket(),
+                    current
+            );
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not allowed to access this attachment");
+        }
+
+        // Audit: registrera nedladdningsförsök
+        auditService.log(
+                AuditAction.FILE_DOWNLOAD_REQUESTED,
+                "attachment",
+                null,
+                "download requested: attachmentId=" + att.getId(),
+                att.getTicket(),
+                current
+        );
 
         final GetObjectResponse object;
         try {
@@ -99,7 +126,7 @@ public class AttachmentDownloadController {
         // - ADMIN och INVESTIGATOR får alltid presigna
         // - REPORTER får endast presigna om hen äger ärendet (ticket.reporter)
         User current = securityUtils.getCurrentUser();
-        if (!canPresign(current, att)) {
+        if (!authorizationService.canAccessAttachment(current, att)) {
             // Audit: access denied to presign for this attachment
             auditService.log(
                     AuditAction.ACCESS_DENIED,
@@ -136,16 +163,5 @@ public class AttachmentDownloadController {
         );
 
         return ResponseEntity.ok(new PresignedUrlResponseDTO(url, ttl));
-    }
-
-    private boolean canPresign(User user, Attachment att) {
-        if (user == null) return false;
-        Role role = user.getRole();
-        if (role == Role.ADMIN || role == Role.INVESTIGATOR) return true;
-        if (role == Role.REPORTER) {
-            var ticket = att.getTicket();
-            return ticket != null && ticket.getReporter() != null && ticket.getReporter().getId().equals(user.getId());
-        }
-        return false;
     }
 }

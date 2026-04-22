@@ -268,4 +268,23 @@ class AttachmentDownloadControllerTest {
 
         verify(storageService, never()).generatePresignedGetUrlWithContentDisposition(any(), any(Integer.class), any());
     }
+
+    @Test
+    void presign_storage_failure_returns_502() throws Exception {
+        // Arrange: happy path until storage throws
+        Attachment att = sampleAttachment();
+        when(attachmentRepository.findById(1L)).thenReturn(Optional.of(att));
+        when(securityUtils.getCurrentUser()).thenReturn(sampleUser());
+        when(authorizationService.canAccessAttachment(any(User.class), any(Attachment.class))).thenReturn(true);
+        when(s3Properties.getPresignMaxTtlSeconds()).thenReturn(300);
+        // Storage fails when generating presigned URL
+        when(storageService.generatePresignedGetUrlWithContentDisposition(any(), any(Integer.class), any()))
+                .thenThrow(new RuntimeException("minio down"));
+
+        // Act & Assert
+        mockMvc.perform(post("/api/files/1/presign")
+                        .param("ttl", "120")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadGateway());
+    }
 }

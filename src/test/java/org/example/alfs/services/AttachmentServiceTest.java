@@ -26,6 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+@DisplayName("AttachmentService Test")
 @ExtendWith(MockitoExtension.class)
 class AttachmentServiceTest {
 
@@ -158,6 +159,33 @@ class AttachmentServiceTest {
                     () -> attachmentService.uploadToTicket(10L, file, admin, null));
 
             verify(storageService).delete("s3-key");
+        }
+    }
+
+    @Nested
+    @DisplayName("checkAccess tests")
+    class CheckAccessTest {
+
+        @Test
+        @DisplayName("Admin always allowed")
+        void admin_alwaysAllowed() throws Exception {
+            when(ticketRepository.findById(10L)).thenReturn(Optional.of(ticket));
+            when(storageService.upload(file)).thenReturn("s3-key");
+            when(file.getOriginalFilename()).thenReturn("file.pdf");
+
+            assertDoesNotThrow(
+                    () -> attachmentService.uploadToTicket(10L, file, admin, null));
+        }
+
+        @Test
+        @DisplayName("Assigned investigator allowed")
+        void assignedInvestigator_allowed() throws Exception {
+            when(ticketRepository.findById(10L)).thenReturn(Optional.of(ticket));
+            when(storageService.upload(file)).thenReturn("s3-key");
+            when(file.getOriginalFilename()).thenReturn("f.pdf");
+
+            assertDoesNotThrow(() ->
+                    attachmentService.uploadToTicket(10L, file, investigator, null));
         }
     }
 }

@@ -202,5 +202,31 @@ class AttachmentServiceTest {
 
             assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
         }
+
+        @Test
+        @DisplayName("Reporter who owns ticket allowed")
+        void reporterWhoOwnsTicket_allowed() throws Exception {
+            when(ticketRepository.findById(10L)).thenReturn(Optional.of(ticket));
+            when(storageService.upload(file)).thenReturn("s3-key");
+            when(file.getOriginalFilename()).thenReturn("f.pdf");
+
+            assertDoesNotThrow(() ->
+                    attachmentService.uploadToTicket(10L, file, reporter, null));
+        }
+
+        @Test
+        @DisplayName("Reporter who does not own ticket denied")
+        void reporterWhoDoesNotOwnTicket_throwsForbidden() {
+            User otherReporter = new User();
+            otherReporter.setId(301L);
+            otherReporter.setRole(Role.REPORTER);
+
+            when(ticketRepository.findById(10L)).thenReturn(Optional.of(ticket));
+
+            ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                    () -> attachmentService.uploadToTicket(10L, file, otherReporter, null));
+
+            assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        }
     }
 }

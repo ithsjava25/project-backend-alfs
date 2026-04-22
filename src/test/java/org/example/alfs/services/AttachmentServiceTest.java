@@ -133,5 +133,17 @@ class AttachmentServiceTest {
 
             assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
         }
+
+        @Test
+        @DisplayName("Null file name should fall back to default name")
+        void nullFileName_fallsBackToDefaultName() throws Exception {
+            when(ticketRepository.findById(10L)).thenReturn(Optional.of(ticket));
+            when(storageService.upload(file)).thenReturn("s3-key");
+            when(file.getOriginalFilename()).thenReturn(null);
+
+            Attachment result = attachmentService.uploadToTicket(10L, file, admin, null);
+
+            assertThat(result.getFileName()).isEqualTo("file");
+        }
     }
 }

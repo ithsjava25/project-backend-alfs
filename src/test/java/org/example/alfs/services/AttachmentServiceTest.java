@@ -145,5 +145,19 @@ class AttachmentServiceTest {
 
             assertThat(result.getFileName()).isEqualTo("file");
         }
+
+        @Test
+        @DisplayName("When save fails uploaded object should be deleted from storage")
+        void whenSaveFails_deletesUploadedObjectFromStorage() throws Exception {
+            when(ticketRepository.findById(10L)).thenReturn(Optional.of(ticket));
+            when(storageService.upload(file)).thenReturn("s3-key");
+            when(file.getOriginalFilename()).thenReturn("doc.pdf");
+            doThrow(new RuntimeException("DB down")).when(attachmentRepository).save(any());
+
+            assertThrows(RuntimeException.class,
+                    () -> attachmentService.uploadToTicket(10L, file, admin, null));
+
+            verify(storageService).delete("s3-key");
+        }
     }
 }

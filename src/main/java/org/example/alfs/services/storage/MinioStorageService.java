@@ -2,9 +2,11 @@ package org.example.alfs.services.storage;
 
 import io.minio.GetObjectArgs;
 import io.minio.GetObjectResponse;
+import io.minio.GetPresignedObjectUrlArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
 import io.minio.RemoveObjectArgs;
+import io.minio.http.Method;
 import org.example.alfs.config.S3Properties;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -63,6 +65,26 @@ public class MinioStorageService {
                         .object(objectKey)
                         .build()
         );
+    }
+
+    /**
+     * Skapar en tidsbegränsad (pre-signerad) GET-URL för ett objekt i S3/MinIO.
+     *
+     * @param objectKey  S3/MinIO-objektets key
+     * @param ttlSeconds Giltighetstid i sekunder (MinIO/S3 begränsar maxvärden, t.ex. upp till 7 dagar)
+     * @return Publik URL som kan användas för direkt nedladdning under giltighetstiden
+     */
+    public String generatePresignedGetUrl(String objectKey, int ttlSeconds) throws Exception {
+        if (ttlSeconds <= 0) {
+            ttlSeconds = 60; // defensivt standardvärde
+        }
+        GetPresignedObjectUrlArgs args = GetPresignedObjectUrlArgs.builder()
+                .method(Method.GET)
+                .bucket(props.getBucket())
+                .object(objectKey)
+                .expiry(ttlSeconds)
+                .build();
+        return minioClient.getPresignedObjectUrl(args);
     }
 
     private String sanitize(String name) {

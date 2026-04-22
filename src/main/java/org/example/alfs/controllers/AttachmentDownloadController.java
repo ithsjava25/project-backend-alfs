@@ -4,6 +4,9 @@ import io.minio.GetObjectResponse;
 import org.example.alfs.entities.Attachment;
 import org.example.alfs.dto.attachment.PresignedUrlResponseDTO;
 import org.example.alfs.repositories.AttachmentRepository;
+import org.example.alfs.security.SecurityUtils;
+import org.example.alfs.entities.User;
+import org.example.alfs.enums.Role;
 import org.example.alfs.services.storage.MinioStorageService;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
@@ -28,11 +31,14 @@ public class AttachmentDownloadController {
 
     private final AttachmentRepository attachmentRepository;
     private final MinioStorageService storageService;
+    private final SecurityUtils securityUtils;
 
     public AttachmentDownloadController(AttachmentRepository attachmentRepository,
-                                        MinioStorageService storageService) {
+                                        MinioStorageService storageService,
+                                        SecurityUtils securityUtils) {
         this.attachmentRepository = attachmentRepository;
         this.storageService = storageService;
+        this.securityUtils = securityUtils;
     }
 
     @GetMapping("/{id}/download")
@@ -84,6 +90,14 @@ public class AttachmentDownloadController {
         Attachment att = attachmentRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Attachment not found: " + id));
 
+        // Enkel behörighetskontroll (steg 2, vecka 2):
+        // - ADMIN och INVESTIGATOR får alltid presigna
+        // - REPORTER får endast presigna om hen äger ärendet (ticket.reporter)
+        User current = securityUtils.getCurrentUser();
+        if (!canPresign(current, att)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not allowed to access this attachment");
+        }
+
         int ttl = (ttlSeconds == null ? 120 : ttlSeconds);
         if (ttl <= 0) ttl = 120;
         // Skydda mot extremt långa tider (t.ex. > 1 dag) i detta tidiga steg
@@ -97,5 +111,16 @@ public class AttachmentDownloadController {
         }
 
         return ResponseEntity.ok(new PresignedUrlResponseDTO(url, ttl));
+    }
+
+    private boolean canPresign(User user, Attachment att) {
+        if (user == null) return false;
+        Role role = user.getRole();
+        if (role == Role.ADMIN || role == Role.INVESTIGATOR) return true;
+        if (role == Role.REPORTER) {
+            var ticket = att.getTicket();
+            return ticket != null && ticket.getReporter() != null && ticket.getReporter().getId().equals(user.getId());
+        }
+        return false;
     }
 }

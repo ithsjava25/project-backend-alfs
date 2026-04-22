@@ -56,6 +56,8 @@ public class SecurityConfig {
                         //allow access to endpoints during development
                         .requestMatchers("/tickets/previewTicket").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/files/upload").permitAll()
+                        // presign ska kräva inloggning (ingen finmaskig ägarskap ännu)
+                        .requestMatchers(HttpMethod.POST, "/api/files/*/presign").authenticated()
                         .requestMatchers("/css/**", "/js/**", "/images/**", "/static/**").permitAll()
                         .requestMatchers("/login", "/login-form").permitAll()
                         .requestMatchers("/signup", "/signup-form").permitAll()

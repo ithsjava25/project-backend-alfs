@@ -187,5 +187,20 @@ class AttachmentServiceTest {
             assertDoesNotThrow(() ->
                     attachmentService.uploadToTicket(10L, file, investigator, null));
         }
+
+        @Test
+        @DisplayName("Unassigned investigator denied")
+        void unassignedInvestigator_throwsForbidden() {
+            User otherInvestigator = new User();
+            otherInvestigator.setId(201L);
+            otherInvestigator.setRole(Role.INVESTIGATOR);
+
+            when(ticketRepository.findById(10L)).thenReturn(Optional.of(ticket));
+
+            ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                    () -> attachmentService.uploadToTicket(10L, file, otherInvestigator, null));
+
+            assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        }
     }
 }

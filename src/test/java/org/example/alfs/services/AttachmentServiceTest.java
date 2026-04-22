@@ -16,7 +16,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Optional;
 
@@ -99,6 +101,26 @@ class AttachmentServiceTest {
 
             assertThat(result.getFileName()).isEqualTo("evidence.pdf");
             verify(attachmentRepository).save(any(Attachment.class));
+        }
+
+        @Test
+        @DisplayName("Anonymous user with no token should throw Unauthorized")
+        void anonymousUser_missingToken_throwsUnauthorized() {
+            ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                    () -> attachmentService.uploadToTicket(10L, file, null, null));
+
+            assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+            verifyNoInteractions(storageService);
+        }
+
+        @Test
+        @DisplayName("Anonymous user with blank token should throw Unauthorized")
+        void anonymousUser_blankToken_throwsUnauthorized() {
+            ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                    () -> attachmentService.uploadToTicket(10L, file, null, "   "));
+
+            assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+            verifyNoInteractions(storageService);
         }
     }
 }

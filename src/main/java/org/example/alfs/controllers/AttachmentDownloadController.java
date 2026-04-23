@@ -114,12 +114,6 @@ public class AttachmentDownloadController {
         return builder.body(resource);
     }
 
-    /**
-     * Minimal presign-endpoint (ingen auth ännu). Returnerar en tidsbegränsad URL
-     * för direkt nedladdning från MinIO.
-     *
-     * Steg 1 för vecka 2: endast 200/404 och enkel TTL-hantering.
-     */
     @PostMapping("/{id}/presign")
     public ResponseEntity<PresignedUrlResponseDTO> presign(@PathVariable Long id,
                                                            @RequestParam(name = "ttl", required = false) Integer ttlSeconds) {

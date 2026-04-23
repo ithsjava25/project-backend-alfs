@@ -1,7 +1,11 @@
 package org.example.alfs.controllers;
 
 import org.example.alfs.dto.ticket.TicketCreateDTO;
+import org.example.alfs.entities.User;
+import org.example.alfs.enums.Role;
+import org.example.alfs.repositories.UserRepository;
 import org.example.alfs.services.TicketService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -28,6 +32,26 @@ class TicketControllerIT {
 
     @Autowired
     private TicketService ticketService;
+    @Autowired
+    private UserRepository userRepository;
+
+    private User investigator;
+    private User reporter;
+
+    @BeforeEach
+    void setUp() {
+        investigator = new User();
+        investigator.setRole(Role.INVESTIGATOR);
+        investigator.setUsername("investigator");
+        investigator.setPasswordHash("hashed-password");
+        investigator = userRepository.save(investigator);
+
+        reporter = new User();
+        reporter.setRole(Role.REPORTER);
+        reporter.setUsername("reporter");
+        reporter.setPasswordHash("hashed-password");
+        reporter = userRepository.save(reporter);
+    }
 
     @Nested
     @DisplayName("Anonymous Reporter")
@@ -91,6 +115,36 @@ class TicketControllerIT {
                     .andExpect(status().isOk())
                     .andExpect(view().name("create"))
                     .andExpect(model().attributeHasFieldErrors("ticket", "title", "description"));
+        }
+    }
+
+    @Nested
+    @DisplayName("Authenticated Reporter")
+    class AuthenticatedReporter {
+
+        @Test
+        @WithMockUser(username = "reporter", roles = "REPORTER")
+        @DisplayName("Authenticated reporter can view their own tickets")
+        void authenticatedReporter_canViewOwnTickets() throws Exception {
+            mockMvc.perform(get("/tickets/my"))
+                    .andExpect(status().isOk())
+                    .andExpect(view().name("my-tickets"))
+                    .andExpect(model().attributeExists("tickets"));
+        }
+    }
+
+    @Nested
+    @DisplayName("Authenticated Investigator")
+    class AuthenticatedInvestigator {
+
+        @Test
+        @WithMockUser(username = "investigator", roles = "INVESTIGATOR")
+        @DisplayName("Authenticated investigator can view their assigned tickets")
+        void authenticatedInvestigator_canViewAssignedTickets() throws Exception {
+            mockMvc.perform(get("/tickets/assigned"))
+                    .andExpect(status().isOk())
+                    .andExpect(view().name("assigned-tickets"))
+                    .andExpect(model().attributeExists("tickets"));
         }
     }
 }

@@ -15,6 +15,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.List;
+
 @Service
 public class AttachmentService {
 
@@ -144,5 +146,17 @@ public class AttachmentService {
         }
 
         throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
+    }
+
+    public List<Attachment> getAttachmentsByTicketId(Long ticketId) {
+        return attachmentRepository.findByTicketId(ticketId);
+    }
+
+    public Attachment getAttachmentById(Long id) {
+        return attachmentRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Attachment not found: " + id
+                ));
     }
 }

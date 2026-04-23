@@ -20,12 +20,10 @@ import java.util.Map;
 public class AttachmentController {
 
     private final AttachmentService attachmentService;
-    private final AttachmentRepository attachmentRepository;
     private final SecurityUtils securityUtils;
 
-    public AttachmentController(AttachmentService attachmentService, AttachmentRepository attachmentRepository, SecurityUtils securityUtils) {
+    public AttachmentController(AttachmentService attachmentService, SecurityUtils securityUtils) {
         this.attachmentService = attachmentService;
-        this.attachmentRepository = attachmentRepository;
         this.securityUtils = securityUtils;
     }
 
@@ -54,6 +52,7 @@ public class AttachmentController {
     }
 
     // List attachments for a ticket
+    // List attachments for a ticket
     @org.springframework.web.bind.annotation.GetMapping
     public ResponseEntity<?> listByTicket(@RequestParam(name = "ticketId") Long ticketId) {
         if (ticketId <= 0) {
@@ -63,7 +62,8 @@ public class AttachmentController {
             ));
         }
 
-        var attachments = attachmentRepository.findByTicketId(ticketId);
+        var attachments = attachmentService.getAttachmentsByTicketId(ticketId);
+
         var dtoList = attachments.stream().map(att -> new AttachmentViewDTO(
                 att.getId(),
                 att.getTicket() != null ? att.getTicket().getId() : null,
@@ -72,6 +72,7 @@ public class AttachmentController {
                 att.getUploadedAt(),
                 att.getUploadedBy() != null ? att.getUploadedBy().getUsername() : "Anonymous"
         )).toList();
+
         return ResponseEntity.ok(dtoList);
     }
 

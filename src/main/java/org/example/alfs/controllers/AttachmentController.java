@@ -1,10 +1,8 @@
 package org.example.alfs.controllers;
-
 import org.example.alfs.dto.attachment.AttachmentViewDTO;
 import org.example.alfs.entities.User;
 import org.example.alfs.security.SecurityUtils;
 import org.example.alfs.services.AttachmentService;
-import org.example.alfs.repositories.AttachmentRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;

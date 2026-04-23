@@ -7,7 +7,6 @@ import org.example.alfs.enums.AuditAction;
 import org.example.alfs.enums.Role;
 import org.example.alfs.repositories.AttachmentRepository;
 import org.example.alfs.repositories.TicketRepository;
-import org.example.alfs.security.SecurityUtils;
 import org.example.alfs.services.storage.MinioStorageService;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -24,18 +23,16 @@ public class AttachmentService {
     private final AttachmentRepository attachmentRepository;
     private final TicketRepository ticketRepository;
     private final AuditService auditService;
-    private final SecurityUtils securityUtils;
+
 
     public AttachmentService(MinioStorageService storageService,
                              AttachmentRepository attachmentRepository,
                              TicketRepository ticketRepository,
-                             AuditService auditService,
-                             SecurityUtils securityUtils) {
+                             AuditService auditService) {
         this.storageService = storageService;
         this.attachmentRepository = attachmentRepository;
         this.ticketRepository = ticketRepository;
         this.auditService = auditService;
-        this.securityUtils = securityUtils;
     }
 
     @Transactional
@@ -98,23 +95,6 @@ public class AttachmentService {
         }
     }
 
-    private User getCurrentUserOrNull() {
-        try {
-            return securityUtils.getCurrentUser();
-        } catch (RuntimeException ex) {
-            String message = ex.getMessage();
-
-            boolean authFailure =
-                    "No authenticated user in security context".equals(message) ||
-                            "Authenticated user not found in database".equals(message);
-
-            if (authFailure) {
-                return null;
-            }
-
-            throw ex;
-        }
-    }
 
     private void checkAccess(Ticket ticket, User user, String token) {
 

@@ -52,7 +52,6 @@ public class AttachmentController {
     }
 
     // List attachments for a ticket
-    // List attachments for a ticket
     @org.springframework.web.bind.annotation.GetMapping
     public ResponseEntity<?> listByTicket(@RequestParam(name = "ticketId") Long ticketId) {
         if (ticketId <= 0) {

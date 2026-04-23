@@ -178,5 +178,16 @@ class TicketControllerIT {
                     .andExpect(model().attributeExists("auditLogs"))
                     .andExpect(model().attributeExists("investigators"));
         }
+
+        @Test
+        @WithMockUser(username = "admin", roles = "ADMIN")
+        @DisplayName("Admin can assign an investigator to a ticket")
+        void admin_canAssignInvestigator() throws Exception {
+            mockMvc.perform(post("/tickets/{id}/assign", ticketId)
+                            .param("investigatorId", investigator.getId().toString())
+                            .with(csrf()))
+                    .andExpect(status().is3xxRedirection())
+                    .andExpect(redirectedUrl("/tickets/" + ticketId));
+        }
     }
 }

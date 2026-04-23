@@ -189,5 +189,18 @@ class TicketControllerIT {
                     .andExpect(status().is3xxRedirection())
                     .andExpect(redirectedUrl("/tickets/" + ticketId));
         }
+
+        @Test
+        @WithMockUser(username = "admin", roles = "ADMIN")
+        @DisplayName("Admin can update status on a ticket")
+        void admin_canUpdateTicketStatus() throws Exception {
+            ticketService.assignInvestigator(ticketId, investigator.getId());
+
+            mockMvc.perform(post("/tickets/{id}/status", ticketId)
+                            .param("status", "RESOLVED")
+                            .with(csrf()))
+                    .andExpect(status().is3xxRedirection())
+                    .andExpect(redirectedUrl("/tickets/" + ticketId));
+        }
     }
 }

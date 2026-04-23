@@ -2,7 +2,6 @@ package org.example.alfs.controllers;
 
 import io.minio.GetObjectResponse;
 import org.example.alfs.entities.Attachment;
-import org.example.alfs.repositories.AttachmentRepository;
 import org.example.alfs.services.AttachmentService;
 import org.example.alfs.services.storage.MinioStorageService;
 import org.springframework.core.io.InputStreamResource;

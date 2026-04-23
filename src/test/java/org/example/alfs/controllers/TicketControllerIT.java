@@ -132,13 +132,13 @@ class TicketControllerIT {
     }
 
     @Nested
-    @DisplayName("Reporter")
+    @DisplayName("Authenticated reporter")
     class AuthenticatedReporter {
 
         @Test
         @WithMockUser(username = "reporter", roles = "REPORTER")
-        @DisplayName("Authenticated reporter can view their own tickets")
-        void authenticatedReporter_canViewOwnTickets() throws Exception {
+        @DisplayName("Reporter can view their own tickets")
+        void reporter_canViewOwnTickets() throws Exception {
             mockMvc.perform(get("/tickets/my"))
                     .andExpect(status().isOk())
                     .andExpect(view().name("my-tickets"))
@@ -147,13 +147,13 @@ class TicketControllerIT {
     }
 
     @Nested
-    @DisplayName("Investigator")
+    @DisplayName("Authenticated investigator")
     class AuthenticatedInvestigator {
 
         @Test
         @WithMockUser(username = "investigator", roles = "INVESTIGATOR")
-        @DisplayName("Authenticated investigator can view their assigned tickets")
-        void authenticatedInvestigator_canViewAssignedTickets() throws Exception {
+        @DisplayName("Investigator can view their assigned tickets")
+        void investigator_canViewAssignedTickets() throws Exception {
             mockMvc.perform(get("/tickets/assigned"))
                     .andExpect(status().isOk())
                     .andExpect(view().name("assigned-tickets"))
@@ -201,6 +201,16 @@ class TicketControllerIT {
                             .with(csrf()))
                     .andExpect(status().is3xxRedirection())
                     .andExpect(redirectedUrl("/tickets/" + ticketId));
+        }
+
+        @Test
+        @WithMockUser(username = "admin", roles = "ADMIN")
+        @DisplayName("Admin cannot perform invalid status transition")
+        void admin_cannotPerformInvalidStatusTransition() throws Exception {
+            mockMvc.perform(post("/tickets/{id}/status", ticketId)
+                            .param("status", "RESOLVED")
+                            .with(csrf()))
+                    .andExpect(status().isBadRequest());
         }
     }
 }

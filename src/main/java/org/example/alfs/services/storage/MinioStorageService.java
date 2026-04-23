@@ -12,7 +12,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
-import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import java.util.HashMap;
@@ -37,7 +36,7 @@ public class MinioStorageService {
         if (fileName == null || fileName.isBlank()) {
             fileName = "file";
         }
-        String objectKey = UUID.randomUUID() + "/" + sanitize(fileName);
+        String objectKey = UUID.randomUUID() + "/" + sanitizeFileName(fileName);
 
         try (InputStream is = file.getInputStream()) {
             String contentType = file.getContentType() != null ? file.getContentType() : "application/octet-stream";
@@ -98,9 +97,12 @@ public class MinioStorageService {
         if (ttlSeconds <= 0) {
             ttlSeconds = 60;
         }
-        String safeName = (fileName == null || fileName.isBlank()) ? "file" : fileName;
+        // Sanitize the supplied filename for safe use in headers and URLs
+        String safeName = sanitizeFileName(fileName);
+        String quoted = escapeForQuotedString(safeName);
+        String rfc5987 = rfc5987Encode(safeName);
         // S3-kompatibla tjänster accepterar "response-content-disposition" som query-param
-        String disposition = "attachment; filename=\"" + safeName + "\"; filename*=UTF-8''" + URLEncoder.encode(safeName, StandardCharsets.UTF_8);
+        String disposition = "attachment; filename=\"" + quoted + "\"; filename*=UTF-8''" + rfc5987;
         Map<String, String> extra = new HashMap<>();
         extra.put("response-content-disposition", disposition);
 
@@ -114,7 +116,73 @@ public class MinioStorageService {
         return minioClient.getPresignedObjectUrl(args);
     }
 
-    private String sanitize(String name) {
-        return name.replace("\\", "_").replace("/", "_");
+    /**
+     * Sanitizes a file name for safe use in headers/paths:
+     * - Trim whitespace
+     * - Remove CR/LF and other control characters
+     * - Replace path separators and dangerous characters with underscore
+     * - Fallback to "file" if empty after sanitization
+     */
+    private String sanitizeFileName(String name) {
+        if (name == null) return "file";
+        String trimmed = name.trim();
+        // remove control chars including CR(\r), LF(\n), tab, etc.
+        StringBuilder sb = new StringBuilder(trimmed.length());
+        for (int i = 0; i < trimmed.length(); i++) {
+            char c = trimmed.charAt(i);
+            if (c < 0x20 || c == 0x7F) {
+                continue; // skip control chars
+            }
+            // Disallow path separators and reserved header-breaking chars
+            if (c == '/' || c == '\\' || c == '"' || c == '\'' || c == ':' || c == ';' || c == ',' || c == '\n' || c == '\r') {
+                sb.append('_');
+            } else {
+                sb.append(c);
+            }
+        }
+        String result = sb.toString();
+        if (result.isBlank()) return "file";
+        return result;
+    }
+
+    /**
+     * Escapes a value for use inside a quoted-string (RFC 2616/7230 style):
+     * backslash-escape backslashes and double quotes.
+     */
+    private String escapeForQuotedString(String value) {
+        StringBuilder sb = new StringBuilder(value.length());
+        for (int i = 0; i < value.length(); i++) {
+            char c = value.charAt(i);
+            if (c == '"' || c == '\\') {
+                sb.append('\\');
+            }
+            sb.append(c);
+        }
+        return sb.toString();
+    }
+
+    /**
+     * RFC 5987 percent-encoding for HTTP header parameters using UTF-8.
+     * Spaces are encoded as %20 (not '+'), and non-ASCII bytes are percent-encoded.
+     */
+    private String rfc5987Encode(String value) {
+        byte[] bytes = value.getBytes(StandardCharsets.UTF_8);
+        StringBuilder sb = new StringBuilder(bytes.length * 3);
+        for (byte b : bytes) {
+            int v = b & 0xFF;
+            // unreserved according to RFC 3986: ALPHA / DIGIT / "-" / "." / "_" / "~"
+            if ((v >= 'a' && v <= 'z') || (v >= 'A' && v <= 'Z') || (v >= '0' && v <= '9')
+                    || v == '-' || v == '.' || v == '_' || v == '~') {
+                sb.append((char) v);
+            } else if (v == ' ') {
+                sb.append("%20");
+            } else {
+                sb.append('%');
+                String hex = Integer.toHexString(v).toUpperCase();
+                if (hex.length() == 1) sb.append('0');
+                sb.append(hex);
+            }
+        }
+        return sb.toString();
     }
 }

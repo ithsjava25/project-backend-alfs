@@ -3,6 +3,7 @@ package org.example.alfs.controllers;
 import org.example.alfs.dto.ticket.TicketCreateDTO;
 import org.example.alfs.entities.User;
 import org.example.alfs.enums.Role;
+import org.example.alfs.repositories.TicketRepository;
 import org.example.alfs.repositories.UserRepository;
 import org.example.alfs.services.TicketService;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,6 +35,8 @@ class TicketControllerIT {
     private TicketService ticketService;
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private TicketRepository ticketRepository;
 
     private Long ticketId;
     private User admin;
@@ -82,13 +85,9 @@ class TicketControllerIT {
         @Test
         @DisplayName("Anonymous reporter can view a created ticket with valid token")
         void anonymousReporter_validToken_returnsView() throws Exception {
-            var dto = new TicketCreateDTO();
-            dto.setTitle("Test");
-            dto.setDescription("Test");
+            var ticket = ticketRepository.findById(ticketId).orElseThrow();
 
-            var ticket = ticketService.createNewTicket(dto);
-
-            mockMvc.perform(get("/tickets/token/" + ticket.getToken()))
+            mockMvc.perform(get("/tickets/token/" + ticket.getReporterToken()))
                     .andExpect(status().isOk())
                     .andExpect(view().name("view"))
                     .andExpect(model().attributeExists("ticket"))

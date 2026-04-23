@@ -1,0 +1,335 @@
+package org.example.alfs.controllers;
+
+import org.example.alfs.config.S3Properties;
+import org.example.alfs.entities.Attachment;
+import org.example.alfs.entities.Ticket;
+import org.example.alfs.entities.User;
+import org.example.alfs.enums.Role;
+import org.example.alfs.repositories.AttachmentRepository;
+import org.example.alfs.security.SecurityUtils;
+import org.example.alfs.services.AuditService;
+import org.example.alfs.services.AuthorizationService;
+import org.example.alfs.services.storage.MinioStorageService;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+
+import java.util.Optional;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.hamcrest.Matchers.containsString;
+
+class AttachmentDownloadControllerTest {
+
+    private MockMvc mockMvc;
+
+    private AttachmentRepository attachmentRepository;
+    private MinioStorageService storageService;
+    private SecurityUtils securityUtils;
+    private AuditService auditService;
+    private AuthorizationService authorizationService;
+    private S3Properties s3Properties;
+
+    @BeforeEach
+    void setup() {
+        attachmentRepository = mock(AttachmentRepository.class);
+        storageService = mock(MinioStorageService.class);
+        securityUtils = mock(SecurityUtils.class);
+        auditService = mock(AuditService.class);
+        authorizationService = mock(AuthorizationService.class);
+        s3Properties = mock(S3Properties.class);
+
+        AttachmentDownloadController controller = new AttachmentDownloadController(
+                attachmentRepository,
+                storageService,
+                securityUtils,
+                auditService,
+                authorizationService,
+                s3Properties
+        );
+
+        mockMvc = MockMvcBuilders.standaloneSetup(controller)
+                .setControllerAdvice()
+                .build();
+    }
+
+    private static Attachment sampleAttachment() {
+        Ticket t = new Ticket();
+        User reporter = new User();
+        reporter.setId(10L);
+        reporter.setRole(Role.REPORTER);
+        t.setReporter(reporter);
+
+        Attachment a = new Attachment();
+        a.setId(1L);
+        a.setTicket(t);
+        a.setFileName("test.pdf");
+        a.setS3Key("some/key");
+        return a;
+    }
+
+    private static User sampleUser() {
+        User u = new User();
+        u.setId(99L);
+        u.setRole(Role.ADMIN);
+        u.setUsername("admin");
+        return u;
+    }
+
+    @Test
+    void presign_ttl_exceeds_max_returns_400() throws Exception {
+        // Arrange
+        Attachment att = sampleAttachment();
+        when(attachmentRepository.findById(1L)).thenReturn(Optional.of(att));
+        when(securityUtils.getCurrentUser()).thenReturn(sampleUser());
+        when(authorizationService.canAccessAttachment(any(User.class), any(Attachment.class))).thenReturn(true);
+
+        // Configure max TTL to 60 seconds
+        when(s3Properties.getPresignMaxTtlSeconds()).thenReturn(60);
+
+        // Act & Assert
+        mockMvc.perform(post("/api/files/1/presign")
+                        .param("ttl", "120")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest());
+
+        // Verify no presign call attempted due to validation failure
+        verify(storageService, never()).generatePresignedGetUrlWithContentDisposition(any(), any(Integer.class), any());
+    }
+
+    @Test
+    void presign_access_denied_returns_403_and_audit_logged() throws Exception {
+        // Arrange
+        Attachment att = sampleAttachment();
+        when(attachmentRepository.findById(1L)).thenReturn(Optional.of(att));
+        when(securityUtils.getCurrentUser()).thenReturn(sampleUser());
+        when(authorizationService.canAccessAttachment(any(User.class), any(Attachment.class))).thenReturn(false);
+        when(s3Properties.getPresignMaxTtlSeconds()).thenReturn(300);
+
+        // Act & Assert
+        mockMvc.perform(post("/api/files/1/presign")
+                        .param("ttl", "120")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isForbidden());
+
+        // Verify audit logged ACCESS_DENIED (we don't assert exact params to keep test resilient)
+        verify(auditService).log(any(), any(), any(), any(), any(), any());
+        // Ensure storage was never called
+        verify(storageService, never()).generatePresignedGetUrlWithContentDisposition(any(), any(Integer.class), any());
+    }
+
+    @Test
+    void presign_success_returns_200_with_url_and_ttl_and_audit_logged() throws Exception {
+        // Arrange
+        Attachment att = sampleAttachment();
+        when(attachmentRepository.findById(1L)).thenReturn(Optional.of(att));
+        when(securityUtils.getCurrentUser()).thenReturn(sampleUser());
+        when(authorizationService.canAccessAttachment(any(User.class), any(Attachment.class))).thenReturn(true);
+        when(s3Properties.getPresignMaxTtlSeconds()).thenReturn(300);
+        when(storageService.generatePresignedGetUrlWithContentDisposition(any(), any(Integer.class), any()))
+                .thenReturn("http://presigned.example/object?sig=abc");
+
+        // Act & Assert
+        mockMvc.perform(post("/api/files/1/presign")
+                        .param("ttl", "120")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("\"expiresInSeconds\":120")))
+                .andExpect(content().string(containsString("http://presigned.example/object?sig=abc")));
+
+        // Verify audit logged (FILE_PRESIGNED) and storage called
+        verify(auditService).log(any(), any(), any(), any(), any(), any());
+        verify(storageService).generatePresignedGetUrlWithContentDisposition(any(), any(Integer.class), any());
+    }
+
+    @Test
+    void presign_without_ttl_uses_default_120_when_max_is_higher() throws Exception {
+        // Arrange
+        Attachment att = sampleAttachment();
+        when(attachmentRepository.findById(1L)).thenReturn(Optional.of(att));
+        when(securityUtils.getCurrentUser()).thenReturn(sampleUser());
+        when(authorizationService.canAccessAttachment(any(User.class), any(Attachment.class))).thenReturn(true);
+        when(s3Properties.getPresignMaxTtlSeconds()).thenReturn(300); // max > 120, so default should be 120
+        when(storageService.generatePresignedGetUrlWithContentDisposition(any(), eq(120), any()))
+                .thenReturn("http://presigned.example/object?sig=default120");
+
+        // Act & Assert (no ttl param)
+        mockMvc.perform(post("/api/files/1/presign")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("\"expiresInSeconds\":120")))
+                .andExpect(content().string(containsString("http://presigned.example/object?sig=default120")));
+
+        // Verify storage called with ttl=120
+        verify(storageService).generatePresignedGetUrlWithContentDisposition(any(), eq(120), any());
+    }
+
+    @Test
+    void presign_without_ttl_uses_max_when_max_less_than_120() throws Exception {
+        // Arrange
+        Attachment att = sampleAttachment();
+        when(attachmentRepository.findById(1L)).thenReturn(Optional.of(att));
+        when(securityUtils.getCurrentUser()).thenReturn(sampleUser());
+        when(authorizationService.canAccessAttachment(any(User.class), any(Attachment.class))).thenReturn(true);
+        when(s3Properties.getPresignMaxTtlSeconds()).thenReturn(60); // max < 120, so default should be 60
+        when(storageService.generatePresignedGetUrlWithContentDisposition(any(), eq(60), any()))
+                .thenReturn("http://presigned.example/object?sig=default60");
+
+        // Act & Assert (no ttl param)
+        mockMvc.perform(post("/api/files/1/presign")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("\"expiresInSeconds\":60")))
+                .andExpect(content().string(containsString("http://presigned.example/object?sig=default60")));
+
+        // Verify storage called with ttl=60
+        verify(storageService).generatePresignedGetUrlWithContentDisposition(any(), eq(60), any());
+    }
+
+    @Test
+    void download_access_denied_returns_403_and_audit_logged() throws Exception {
+        // Arrange
+        Attachment att = sampleAttachment();
+        when(attachmentRepository.findById(1L)).thenReturn(Optional.of(att));
+        when(securityUtils.getCurrentUser()).thenReturn(sampleUser());
+        when(authorizationService.canAccessAttachment(any(User.class), any(Attachment.class))).thenReturn(false);
+
+        // Act & Assert
+        mockMvc.perform(get("/api/files/1/download"))
+                .andExpect(status().isForbidden());
+
+        verify(auditService).log(any(), any(), any(), any(), any(), any());
+        verify(storageService, never()).download(any());
+    }
+
+    @Test
+    void download_success_returns_200_and_sets_content_disposition_and_audit_logged() throws Exception {
+        // Arrange
+        Attachment att = sampleAttachment();
+        when(attachmentRepository.findById(1L)).thenReturn(Optional.of(att));
+        when(securityUtils.getCurrentUser()).thenReturn(sampleUser());
+        when(authorizationService.canAccessAttachment(any(User.class), any(Attachment.class))).thenReturn(true);
+
+        // Mock GetObjectResponse as an InputStream
+        io.minio.GetObjectResponse objectResponse = Mockito.mock(io.minio.GetObjectResponse.class);
+        when(objectResponse.read()).thenReturn(-1); // no content read during response build
+        // headers() returns okhttp3.Headers in newer MinIO; we can just return null-safe behavior by returning null for get("Content-Length")
+        var headersMock = new okhttp3.Headers.Builder().build();
+        when(objectResponse.headers()).thenReturn(headersMock);
+
+        when(storageService.download(any())).thenReturn(objectResponse);
+
+        // Act & Assert
+        mockMvc.perform(get("/api/files/1/download"))
+                .andExpect(status().isOk())
+                // Relaxed assertion to support RFC 5987 filename* and encoded variants used by Spring
+                .andExpect(header().string("Content-Disposition", containsString("test.pdf")));
+
+        verify(auditService).log(any(), any(), any(), any(), any(), any());
+        verify(storageService).download(any());
+    }
+
+    @Test
+    void download_storage_failure_returns_502() throws Exception {
+        // Arrange
+        Attachment att = sampleAttachment();
+        when(attachmentRepository.findById(1L)).thenReturn(Optional.of(att));
+        when(securityUtils.getCurrentUser()).thenReturn(sampleUser());
+        when(authorizationService.canAccessAttachment(any(User.class), any(Attachment.class))).thenReturn(true);
+        when(storageService.download(any())).thenThrow(new RuntimeException("boom"));
+
+        // Act & Assert
+        mockMvc.perform(get("/api/files/1/download"))
+                .andExpect(status().isBadGateway());
+    }
+
+    @Test
+    void presign_when_attachment_not_found_returns_404() throws Exception {
+        // Arrange
+        when(attachmentRepository.findById(404L)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        mockMvc.perform(post("/api/files/404/presign")
+                        .param("ttl", "60")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void download_when_attachment_not_found_returns_404() throws Exception {
+        // Arrange
+        when(attachmentRepository.findById(404L)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        mockMvc.perform(get("/api/files/404/download"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void presign_with_zero_ttl_returns_400() throws Exception {
+        // Arrange
+        Attachment att = sampleAttachment();
+        when(attachmentRepository.findById(1L)).thenReturn(Optional.of(att));
+        when(securityUtils.getCurrentUser()).thenReturn(sampleUser());
+        when(authorizationService.canAccessAttachment(any(User.class), any(Attachment.class))).thenReturn(true);
+        when(s3Properties.getPresignMaxTtlSeconds()).thenReturn(300);
+
+        // Act & Assert
+        mockMvc.perform(post("/api/files/1/presign")
+                        .param("ttl", "0")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest());
+
+        verify(storageService, never()).generatePresignedGetUrlWithContentDisposition(any(), any(Integer.class), any());
+    }
+
+    @Test
+    void presign_with_negative_ttl_returns_400() throws Exception {
+        // Arrange
+        Attachment att = sampleAttachment();
+        when(attachmentRepository.findById(1L)).thenReturn(Optional.of(att));
+        when(securityUtils.getCurrentUser()).thenReturn(sampleUser());
+        when(authorizationService.canAccessAttachment(any(User.class), any(Attachment.class))).thenReturn(true);
+        when(s3Properties.getPresignMaxTtlSeconds()).thenReturn(300);
+
+        // Act & Assert
+        mockMvc.perform(post("/api/files/1/presign")
+                        .param("ttl", "-5")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest());
+
+        verify(storageService, never()).generatePresignedGetUrlWithContentDisposition(any(), any(Integer.class), any());
+    }
+
+    @Test
+    void presign_storage_failure_returns_502() throws Exception {
+        // Arrange: happy path until storage throws
+        Attachment att = sampleAttachment();
+        when(attachmentRepository.findById(1L)).thenReturn(Optional.of(att));
+        when(securityUtils.getCurrentUser()).thenReturn(sampleUser());
+        when(authorizationService.canAccessAttachment(any(User.class), any(Attachment.class))).thenReturn(true);
+        when(s3Properties.getPresignMaxTtlSeconds()).thenReturn(300);
+        // Storage fails when generating presigned URL
+        when(storageService.generatePresignedGetUrlWithContentDisposition(any(), any(Integer.class), any()))
+                .thenThrow(new RuntimeException("minio down"));
+
+        // Act & Assert
+        mockMvc.perform(post("/api/files/1/presign")
+                        .param("ttl", "120")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadGateway());
+    }
+}

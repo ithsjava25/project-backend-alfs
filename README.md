@@ -58,15 +58,32 @@ createdAt = 2026-03-27
   ```
 - Check MinIO Console → your bucket → object is present.
 
-5) Test file download (GET)
-- Take the `id` from the upload response above and request:
+5) Secure download via presigned URL (Week 2)
+
+- Hämta en presignerad URL (kräver JWT och behörighet):
   ```bash
-  curl -v -o downloaded.pdf "http://localhost:8080/api/files/42/download"
+  curl -H "Authorization: Bearer <JWT>" \
+       -X POST "http://localhost:8080/api/files/42/presign?ttl=120"
   ```
-- The file should be downloaded as `downloaded.pdf`.
+- Svar:
+  ```json
+  { "url": "http://localhost:9000/alfs-attachments/<objectKey>?X-Amz-...", "expiresInSeconds": 120 }
+  ```
+- Öppna URL:en i webbläsare eller via curl för direktnedladdning från MinIO.
+- Content-Disposition sätts så att webbläsaren föreslår originalfilnamnet.
+
+6) Direkt download-endpoint (GET)
+- Finns kvar för utveckling/test: `GET /api/files/{id}/download`.
+- Kräver nu inloggning och samma behörighetsregler som presign.
+- Exempel:
+  ```bash
+  curl -H "Authorization: Bearer <JWT>" -v -o downloaded.pdf "http://localhost:8080/api/files/42/download"
+  ```
+- Rekommenderad väg för klienter är presigned URL-flödet ovan.
 
 Notes
-- No authentication is enforced on these endpoints yet (Week 1 scope).
+- Upload (POST /api/files/upload) är öppen i dev enligt Week 1 scope; presign och download kräver JWT och behörighet.
+- Behörighetsregler (Week 2): ADMIN/INVESTIGATOR alltid; REPORTER endast om ägare av ärendet.
 - Ensure a Ticket with the provided `ticketId` exists in the database before uploading.
 
 

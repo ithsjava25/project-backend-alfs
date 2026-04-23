@@ -17,6 +17,7 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -206,8 +207,11 @@ class TicketControllerIT {
         @WithMockUser(username = "admin", roles = "ADMIN")
         @DisplayName("Admin cannot perform invalid status transition")
         void admin_cannotPerformInvalidStatusTransition() throws Exception {
+            var ticket = ticketRepository.findById(ticketId).orElseThrow();
+            assertEquals(org.example.alfs.enums.TicketStatus.OPEN, ticket.getStatus());
+
             mockMvc.perform(post("/tickets/{id}/status", ticketId)
-                            .param("status", "RESOLVED")
+                            .param("status", "RESOLVED")  // Transition OPEN -> RESOLVED is invalid
                             .with(csrf()))
                     .andExpect(status().isBadRequest());
         }

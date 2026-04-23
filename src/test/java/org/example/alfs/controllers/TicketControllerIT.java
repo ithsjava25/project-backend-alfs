@@ -35,11 +35,19 @@ class TicketControllerIT {
     @Autowired
     private UserRepository userRepository;
 
+    private Long ticketId;
+    private User admin;
     private User investigator;
     private User reporter;
 
     @BeforeEach
     void setUp() {
+        admin = new User();
+        admin.setRole(Role.ADMIN);
+        admin.setUsername("admin");
+        admin.setPasswordHash("hashed-password");
+        admin = userRepository.save(admin);
+
         investigator = new User();
         investigator.setRole(Role.INVESTIGATOR);
         investigator.setUsername("investigator");
@@ -51,6 +59,11 @@ class TicketControllerIT {
         reporter.setUsername("reporter");
         reporter.setPasswordHash("hashed-password");
         reporter = userRepository.save(reporter);
+
+        TicketCreateDTO dto = new TicketCreateDTO();
+        dto.setTitle("Test");
+        dto.setDescription("Test");
+        ticketId = ticketService.createNewTicket(dto).getId();
     }
 
     @Nested
@@ -119,7 +132,7 @@ class TicketControllerIT {
     }
 
     @Nested
-    @DisplayName("Authenticated Reporter")
+    @DisplayName("Reporter")
     class AuthenticatedReporter {
 
         @Test
@@ -134,7 +147,7 @@ class TicketControllerIT {
     }
 
     @Nested
-    @DisplayName("Authenticated Investigator")
+    @DisplayName("Investigator")
     class AuthenticatedInvestigator {
 
         @Test
@@ -145,6 +158,25 @@ class TicketControllerIT {
                     .andExpect(status().isOk())
                     .andExpect(view().name("assigned-tickets"))
                     .andExpect(model().attributeExists("tickets"));
+        }
+    }
+
+    @Nested
+    @DisplayName("Admin")
+    class Admin {
+
+        @Test
+        @WithMockUser(username = "admin", roles = "ADMIN")
+        @DisplayName("Admin can view ticket by id")
+        void admin_canViewTicketById() throws Exception {
+            mockMvc.perform(get("/tickets/{id}", ticketId))
+                    .andExpect(status().isOk())
+                    .andExpect(view().name("view"))
+                    .andExpect(model().attributeExists("ticket"))
+                    .andExpect(model().attributeExists("comments"))
+                    .andExpect(model().attributeExists("attachments"))
+                    .andExpect(model().attributeExists("auditLogs"))
+                    .andExpect(model().attributeExists("investigators"));
         }
     }
 }

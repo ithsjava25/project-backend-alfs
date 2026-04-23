@@ -8,10 +8,13 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
@@ -65,6 +68,29 @@ class TicketControllerIT {
             mockMvc.perform(get("/tickets/token/invalid-token"))
                     .andExpect(status().is3xxRedirection())
                     .andExpect(redirectedUrl("/login?tokenError=true"));
+        }
+
+        @Test
+        @DisplayName("Anonymous reporter submits valid ticket and is redirected to ticket-created")
+        void anonymousReporter_validPost_redirectsToTicketCreated() throws Exception {
+            mockMvc.perform(post("/tickets/create")
+                            .param("title", "Test title")
+                            .param("description", "Test description")
+                            .with(csrf()))
+                    .andExpect(status().is3xxRedirection())
+                    .andExpect(redirectedUrlPattern("/tickets/ticket-created?token=*"));
+        }
+
+        @Test
+        @DisplayName("Anonymous reporter submits blank form and sees create page again")
+        void anonymousReporter_blankPost_returnsCreateForm() throws Exception {
+            mockMvc.perform(post("/tickets/create")
+                            .param("title", "")
+                            .param("description", "")
+                            .with(csrf()))
+                    .andExpect(status().isOk())
+                    .andExpect(view().name("create"))
+                    .andExpect(model().attributeHasFieldErrors("ticket", "title", "description"));
         }
     }
 }

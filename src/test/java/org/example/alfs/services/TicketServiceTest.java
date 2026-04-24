@@ -41,7 +41,6 @@ class TicketServiceTest {
     UserRepository userRepository;
     @Mock
     SecurityUtils securityUtils;
-
     @Mock
     AuditService auditService;
 

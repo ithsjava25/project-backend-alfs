@@ -145,7 +145,9 @@ class AttachmentServiceTest {
 
             Attachment result = attachmentService.uploadToTicket(10L, file, admin, null);
 
+            assertThat(result.getS3Key()).isEqualTo("s3-key");
             assertThat(result.getFileName()).isEqualTo("file");
+            verify(attachmentRepository).save(any(Attachment.class));
         }
 
         @Test

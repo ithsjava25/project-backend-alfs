@@ -3,6 +3,14 @@
 ## A secure case management system built with Spring Boot for handling whistleblower reports.
 The system allows anonymous reporting, secure file uploads, role-based access control, and full audit logging.
 
+### CI/CD
+```text
+This project uses GitHub Actions for CI/CD.
+CI runs tests and validates code on push and pull requests.
+CD builds and uploads a JAR artifact when code is merged to main.
+```
+
+
 ### Logs should look like this:
 ```text
 action = HANDLER_ASSIGNED

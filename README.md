@@ -1,25 +1,68 @@
-# The ALFS Whistleblower Ticket System
+# ALFS Whistleblower Ticket System
 
-## A secure case management system built with Spring Boot for handling whistleblower reports.
-The system allows anonymous reporting, secure file uploads, role-based access control, and full audit logging.
+ALFS is a secure case management system for handling whistleblower reports, built with Spring Boot.
 
-### CI/CD
-```text
-This project uses GitHub Actions for CI/CD.
-CI runs tests and validates code on push and pull requests.
-CD builds and uploads a JAR artifact when code is merged to main.
-```
+## Features
+- Anonymous and authenticated ticket submission
+- Ticket assignment, status updates, and comments
+- Secure file attachments with MinIO storage
+- Role-based access control
+- Internal notes for private admin/investigator communication
+- Audit logging for all key actions
+- Server-side rendered UI with JTE templates
+- Demo data for quick local testing
 
+## Internal Messaging
+The system supports internal notes for communication between admins and investigators.  
+These messages are kept separate from public ticket comments so internal coordination stays private.  
+This makes it easier to discuss case handling, assignments, and follow-up work without exposing sensitive details.
 
-### Logs should look like this:
-```text
-action = HANDLER_ASSIGNED
-fieldName = assignedHandler
-oldValue = null
-newValue = userId:5
-createdAt = 2026-03-27
-```
+## Audit Logging
+The application keeps an audit trail of important actions so changes can be reviewed later.  
+It records details such as the action type, affected field, previous value, new value, and timestamp.  
+This helps track ticket updates, assignment changes, status changes, comments, and other key workflow events.
 
+## Tech Stack
+- Java 25
+- Spring Boot
+- Spring MVC
+- Spring Data JPA
+- Spring Security
+- Jakarta EE APIs
+- Lombok
+- JTE templates
+- H2 for local development
+- MinIO for file storage
+- JUnit 5, Mockito, and Spring test support
+
+## How to Run
+1. Make sure you have Java 25 and Maven installed.
+2. Start the application:
+   ```bash
+   ./mvnw spring-boot:run
+   ```
+3. Open the app in your browser at:
+   ```text
+   http://localhost:8080
+   ```
+
+## Local Development Notes
+- Demo data is available for quick local testing.
+- H2 console is available for local database inspection.
+- MinIO is used for attachment storage in development.
+
+## Project Structure
+- `controllers` — web endpoints
+- `services` — business logic
+- `repositories` — database access
+- `entities` — JPA models
+- `dto` and `mapper` — request/response mapping
+- `security` — authentication and JWT handling
+
+## CI/CD
+The project uses GitHub Actions for:
+- CI on push and pull requests
+- CD builds that publish a JAR artifact on `main`
 
 ## Local MinIO setup (dev) and testing file upload/download
 
@@ -73,11 +116,6 @@ createdAt = 2026-03-27
   ```
 - The file should be downloaded as `downloaded.pdf`.
 
-Notes
-- No authentication is enforced on these endpoints yet (Week 1 scope).
-- Ensure a Ticket with the provided `ticketId` exists in the database before uploading.
-
-
 ## Demo Data
 
 The application includes a demo data seeder that populates the database with realistic test data on startup.
@@ -112,6 +150,35 @@ Once running, the H2 database console is available at `/h2-console` using the cr
 
 -------
 
+## 🔐 Role-Based Access Control (RBAC)
+
+The system implements a multi-layered security model to protect whistleblower reports and ensure that only authorized personnel can access sensitive information.
+
+### Roles and Permissions
+
+| Role | Purpose | Permissions |
+| --- | --- | --- |
+| **REPORTER** | Standard whistleblower user. | Create tickets, view their own tickets, and add comments. |
+| **INVESTIGATOR**| Internal staff handling cases. | View assigned tickets, update ticket status, and add comments. |
+| **ADMIN** | System administrator. | Full access to all tickets, assign investigators to tickets, and system management. |
+
+#### Anonymous Access
+Anonymous (unauthenticated) users can submit tickets without an account. A unique secure token is generated on submission — anyone with the token can view and comment on that specific ticket without logging in.
+
+### Access Control Mechanisms
+
+1.  **Endpoint Protection**: Configured in `SecurityConfig.java`, defining which URL patterns are public (e.g., login, signup, anonymous ticket creation) and which require authentication.
+2.  **Method Security**: Using `@PreAuthorize` annotations on controller methods to enforce role requirements at the service and controller levels.
+3.  **Owner-Based Access**: Tickets created by a `REPORTER` are only accessible to that specific user, the assigned `INVESTIGATOR`, and all `ADMIN` users.
+4.  **Token-Based Access**: For anonymous reports, a unique secure token is generated. Anyone with the token can view and comment on that specific ticket without needing an account.
+
+### Database Entities
+
+-   **User**: Stores credentials and the assigned `Role`.
+-   **Role**: An enumeration (`REPORTER`, `INVESTIGATOR`, `ADMIN`) that defines the user's authority level.
+
+-------
+
 ## 🏗️ Architecture
 
 The application follows a layered architecture:
@@ -122,6 +189,6 @@ Controller → Service → Repository → Database
 
 - Controllers handle HTTP requests and responses
 - Services contain business logic
-- Repositories handle data access  
+- Repositories handle data access
 
--------
+-------~~

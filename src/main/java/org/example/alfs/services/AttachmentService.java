@@ -95,7 +95,6 @@ public class AttachmentService {
         }
     }
 
-
     private void checkAccess(Ticket ticket, User user, String token) {
 
         // ANONYMOUS VIA TOKEN

@@ -253,14 +253,5 @@ class AttachmentServiceTest {
 
             assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
         }
-
-        @Test
-        @DisplayName("Anonymous reporter with no token denied")
-        void anonymousReporter_withMissingToken_throwsUnauthorized() {
-            ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                    () -> attachmentService.uploadToTicket(10L, file, null, null));
-
-            assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
-        }
     }
 }

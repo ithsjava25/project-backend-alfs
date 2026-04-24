@@ -1,7 +1,5 @@
 package org.example.alfs.controllers;
 
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletResponse;
 import org.example.alfs.dto.auth.LoginRequestDTO;
 import org.example.alfs.dto.auth.LoginResponseDTO;
 import org.example.alfs.dto.auth.SignupRequestDTO;

@@ -101,3 +101,19 @@ The seeder will only run if the admin user does not exist, so it is safe to leav
 | reporter2 | reporter2 | REPORTER |
 
 Once running, the H2 database console is available at `/h2-console` using the credentials in `application.properties`.
+
+-------
+
+## 🏗️ Architecture
+
+The application follows a layered architecture:
+
+```text
+Controller → Service → Repository → Database
+```
+
+- Controllers handle HTTP requests and responses
+- Services contain business logic
+- Repositories handle data access  
+
+-------

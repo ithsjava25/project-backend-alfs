@@ -3,6 +3,14 @@
 ## A secure case management system built with Spring Boot for handling whistleblower reports.
 The system allows anonymous reporting, secure file uploads, role-based access control, and full audit logging.
 
+### CI/CD
+```text
+This project uses GitHub Actions for CI/CD.
+CI runs tests and validates code on push and pull requests.
+CD builds and uploads a JAR artifact when code is merged to main.
+```
+
+
 ### Logs should look like this:
 ```text
 action = HANDLER_ASSIGNED
@@ -101,3 +109,19 @@ The seeder will only run if the admin user does not exist, so it is safe to leav
 | reporter2 | reporter2 | REPORTER |
 
 Once running, the H2 database console is available at `/h2-console` using the credentials in `application.properties`.
+
+-------
+
+## 🏗️ Architecture
+
+The application follows a layered architecture:
+
+```text
+Controller → Service → Repository → Database
+```
+
+- Controllers handle HTTP requests and responses
+- Services contain business logic
+- Repositories handle data access  
+
+-------

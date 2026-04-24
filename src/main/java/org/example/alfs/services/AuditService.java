@@ -7,6 +7,8 @@ import org.example.alfs.enums.AuditAction;
 import org.example.alfs.repositories.AuditLogRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 public class AuditService {
 
@@ -25,7 +27,7 @@ public class AuditService {
         log.setOldValue(oldValue);
         log.setNewValue(newValue);
         log.setTicket(ticket);
-        log.setUser(user); // 🔥 VIKTIGT
+        log.setUser(user);
         auditLogRepository.save(log);
     }
 
@@ -39,5 +41,9 @@ public class AuditService {
         log.setTicket(ticket);
         // createdAt sätts automatiskt via @PrePersist i AuditLog
         auditLogRepository.save(log);
+    }
+
+    public List<AuditLog> getAuditLogsForTicket(Long ticketId) {
+        return auditLogRepository.findByTicketIdOrderByCreatedAtDesc(ticketId);
     }
 }

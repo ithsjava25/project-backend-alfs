@@ -1,6 +1,4 @@
 package org.example.alfs.controllers;
-import org.example.alfs.repositories.AttachmentRepository;
-import org.example.alfs.repositories.AuditLogRepository;
 import org.example.alfs.security.SecurityUtils;
 import org.example.alfs.services.*;
 import org.springframework.http.HttpStatus;
@@ -16,7 +14,6 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
-import jakarta.servlet.http.HttpServletRequest;
 
 //TODO: Decide final routes and redirects
 
@@ -26,16 +23,16 @@ public class TicketController {
 
     private final TicketService ticketService;
     private final TicketCommentService ticketCommentService;
-    private final AttachmentRepository attachmentRepository;
-    private final AuditLogRepository auditLogRepository;
+    private final AttachmentService attachmentService;
+    private final AuditService auditService;
     private final SecurityUtils securityUtils;
     private final UserService userService;
 
-    public TicketController(TicketService ticketService, TicketCommentService ticketCommentService, AttachmentRepository attachmentRepository, AuditLogRepository auditLogRepository, SecurityUtils securityUtils, UserService userService) {
+    public TicketController(TicketService ticketService, TicketCommentService ticketCommentService,AttachmentService attachmentService, AuditService auditService,  SecurityUtils securityUtils, UserService userService) {
         this.ticketService = ticketService;
         this.ticketCommentService = ticketCommentService;
-        this.attachmentRepository = attachmentRepository;
-        this.auditLogRepository = auditLogRepository;
+        this.attachmentService = attachmentService;
+        this.auditService = auditService;
         this.securityUtils = securityUtils;
         this.userService = userService;
     }
@@ -84,8 +81,8 @@ public class TicketController {
             var user = securityUtils.getCurrentUserOrNull();
 
             var comments = ticketCommentService.getComments(ticket.getId(), user, token);
-            var attachments = attachmentRepository.findByTicketId(ticket.getId());
-            var auditLogs = auditLogRepository.findByTicketIdOrderByCreatedAtDesc(ticket.getId());
+            var attachments = attachmentService.getAttachmentsByTicketId(ticket.getId());
+            var auditLogs = auditService.getAuditLogsForTicket(ticket.getId());
             var investigators = userService.getAllInvestigators();
 
             model.addAttribute("ticket", ticket);
@@ -121,10 +118,10 @@ public class TicketController {
         var comments = ticketCommentService.getComments(id, user, null);
 
         // get attachments
-        var attachments = attachmentRepository.findByTicketId(id);
+        var attachments = attachmentService.getAttachmentsByTicketId(id);
 
         // get audit logs
-        var auditLogs = auditLogRepository.findByTicketIdOrderByCreatedAtDesc(id);
+        var auditLogs = auditService.getAuditLogsForTicket(id);
 
         var investigators = userService.getAllInvestigators();
 

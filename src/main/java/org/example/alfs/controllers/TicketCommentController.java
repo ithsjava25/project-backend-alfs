@@ -15,8 +15,7 @@ import org.example.alfs.services.TicketCommentService;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
+
 import java.util.List;
 
 @Controller

@@ -8,7 +8,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.example.alfs.entities.Attachment;
-import org.example.alfs.repositories.AttachmentRepository;
+import org.example.alfs.services.AttachmentService;
 import org.example.alfs.services.storage.MinioStorageService;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
@@ -26,12 +26,12 @@ import java.nio.charset.StandardCharsets;
 @RequestMapping("/api/files")
 public class AttachmentDownloadController {
 
-    private final AttachmentRepository attachmentRepository;
+    private final AttachmentService attachmentService;
     private final MinioStorageService storageService;
 
-    public AttachmentDownloadController(AttachmentRepository attachmentRepository,
+    public AttachmentDownloadController(AttachmentService attachmentService,
                                         MinioStorageService storageService) {
-        this.attachmentRepository = attachmentRepository;
+        this.attachmentService = attachmentService;
         this.storageService = storageService;
     }
 
@@ -53,17 +53,13 @@ public class AttachmentDownloadController {
             @ApiResponse(responseCode = "404", description = "Attachment not found"),
             @ApiResponse(responseCode = "502", description = "Failed to fetch file from storage")
     })
-    public ResponseEntity<Resource> download(
+    public ResponseEntity<Resource> download( 
             @Parameter(description = "ID of the attachment", example = "1")
             @PathVariable Long id
     ) {
 
-        Attachment att = attachmentRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "Attachment not found: " + id
-                ));
-
+        Attachment att = attachmentService.getAttachmentById(id);
+        
         final GetObjectResponse object;
         try {
             object = storageService.download(att.getS3Key());

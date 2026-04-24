@@ -1,0 +1,33 @@
+# This workflow builds the application artifact (JAR file) after push to main branch.
+# It ensures that only tested and verified code is packaged and stored as an artifact.
+# The artifact can later be used for deployment or further distribution.
+
+
+
+name: CD - Build Artifact
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-java@v5
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Build JAR
+        run: mvn -B clean package -DskipTests
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: alfs-app
+          path: target/*.jar

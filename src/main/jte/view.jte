@@ -174,12 +174,8 @@
                             Ticket Description
                         </div>
 
-                        <div class="text-xs font-bold mb-1">
-                            @if(username != null)
-                                ${username}
-                            @else
-                                Anonymous
-                            @endif
+                        <div class="text-xs font-bold mb-1 text-gray-700">
+                            Ticket creator
                         </div>
 
                         ${ticket.getDescription()}

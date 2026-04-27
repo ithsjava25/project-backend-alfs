@@ -2,6 +2,7 @@ package org.example.alfs.controllers;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -56,7 +57,7 @@ public class TicketCommentController {
             content =
                 @Content(
                     mediaType = "application/json",
-                    schema = @Schema(implementation = CommentViewDTO.class))),
+                    array = @ArraySchema(schema = @Schema(implementation = CommentViewDTO.class)))),
         @ApiResponse(responseCode = "403", description = "Access denied"),
         @ApiResponse(responseCode = "404", description = "Ticket not found")
       })

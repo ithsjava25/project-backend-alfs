@@ -9,34 +9,27 @@ import org.springframework.web.server.ResponseStatusException;
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(ResponseStatusException.class)
-    public String handleResponseStatusException(
-            ResponseStatusException ex,
-            Model model,
-            HttpServletResponse response
-    ) {
+  @ExceptionHandler(ResponseStatusException.class)
+  public String handleResponseStatusException(
+      ResponseStatusException ex, Model model, HttpServletResponse response) {
 
-        int status = ex.getStatusCode().value();
-        response.setStatus(status);
+    int status = ex.getStatusCode().value();
+    response.setStatus(status);
 
-        model.addAttribute("status", status);
-        model.addAttribute("error", ex.getReason());
+    model.addAttribute("status", status);
+    model.addAttribute("error", ex.getReason());
 
-        return "error";
-    }
+    return "error";
+  }
 
-    @ExceptionHandler(Exception.class)
-    public String handleException(
-            Exception ex,
-            Model model,
-            HttpServletResponse response
-    ) {
+  @ExceptionHandler(Exception.class)
+  public String handleException(Exception ex, Model model, HttpServletResponse response) {
 
-        response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+    response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 
-        model.addAttribute("status", 500);
-        model.addAttribute("error", "Something went wrong");
+    model.addAttribute("status", 500);
+    model.addAttribute("error", "Something went wrong");
 
-        return "error";
-    }
+    return "error";
+  }
 }

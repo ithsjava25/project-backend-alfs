@@ -14,10 +14,7 @@ import lombok.Data;
 @Data
 public class TicketCreateDTO {
 
+  @NotBlank private String title;
 
-    @NotBlank
-    private String title;
-
-    @NotBlank
-    private String description;
+  @NotBlank private String description;
 }

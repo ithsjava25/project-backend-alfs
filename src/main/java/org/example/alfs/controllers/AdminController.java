@@ -9,16 +9,16 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Controller
 public class AdminController {
 
-    private final TicketService ticketService;
+  private final TicketService ticketService;
 
-    public AdminController(TicketService ticketService) {
-        this.ticketService = ticketService;
-    }
+  public AdminController(TicketService ticketService) {
+    this.ticketService = ticketService;
+  }
 
-    @PreAuthorize("hasRole('ADMIN')")
-    @GetMapping("/admin/tickets")
-    public String getAllTicketsForAdmin(Model model) {
-        model.addAttribute("tickets", ticketService.getAllTickets());
-        return "admin-tickets";
-    }
+  @PreAuthorize("hasRole('ADMIN')")
+  @GetMapping("/admin/tickets")
+  public String getAllTicketsForAdmin(Model model) {
+    model.addAttribute("tickets", ticketService.getAllTickets());
+    return "admin-tickets";
+  }
 }

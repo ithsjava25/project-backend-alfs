@@ -14,7 +14,7 @@ ALFS is a secure case management system for handling whistleblower reports, buil
 - **RBAC**: Multi-layered permissions for Reporters, Investigators, and Admins.
 - **Owner-Based Access**: Strict isolation of ticket data based on reporter and assigned investigator.
 - **Secure Token Access**: Unique cryptographic tokens for anonymous ticket follow-ups.
-- **Data Protection**: Secure password hashing with BCrypt and CSRF protection for all state-changing requests.
+- **Data Protection**: Secure password hashing with BCrypt.
 - **XSS Prevention**: Automatic HTML escaping via server-side JTE rendering.
 - **JWT Authentication**: Supports both browser cookies and API headers with database-backed role verification.
 

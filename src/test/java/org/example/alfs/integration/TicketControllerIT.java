@@ -18,7 +18,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -112,8 +111,7 @@ class TicketControllerIT {
         void anonymousReporter_validPost_redirectsToTicketCreated() throws Exception {
             mockMvc.perform(post("/tickets/create")
                             .param("title", "Test title")
-                            .param("description", "Test description")
-                            .with(csrf()))
+                            .param("description", "Test description"))
                     .andExpect(status().is3xxRedirection())
                     .andExpect(redirectedUrlPattern("/tickets/ticket-created?token=*"));
         }
@@ -123,8 +121,7 @@ class TicketControllerIT {
         void anonymousReporter_blankPost_returnsCreateForm() throws Exception {
             mockMvc.perform(post("/tickets/create")
                             .param("title", "")
-                            .param("description", "")
-                            .with(csrf()))
+                            .param("description", ""))
                     .andExpect(status().isOk())
                     .andExpect(view().name("create"))
                     .andExpect(model().attributeHasFieldErrors("ticket", "title", "description"));
@@ -184,8 +181,7 @@ class TicketControllerIT {
         @DisplayName("Admin can assign an investigator to a ticket")
         void admin_canAssignInvestigator() throws Exception {
             mockMvc.perform(post("/tickets/{id}/assign", ticketId)
-                            .param("investigatorId", investigator.getId().toString())
-                            .with(csrf()))
+                            .param("investigatorId", investigator.getId().toString()))
                     .andExpect(status().is3xxRedirection())
                     .andExpect(redirectedUrl("/tickets/" + ticketId));
         }
@@ -197,8 +193,7 @@ class TicketControllerIT {
             ticketService.assignInvestigator(ticketId, investigator.getId());
 
             mockMvc.perform(post("/tickets/{id}/status", ticketId)
-                            .param("status", "RESOLVED")
-                            .with(csrf()))
+                            .param("status", "RESOLVED"))
                     .andExpect(status().is3xxRedirection())
                     .andExpect(redirectedUrl("/tickets/" + ticketId));
         }
@@ -211,8 +206,7 @@ class TicketControllerIT {
             assertEquals(org.example.alfs.enums.TicketStatus.OPEN, ticket.getStatus());
 
             mockMvc.perform(post("/tickets/{id}/status", ticketId)
-                            .param("status", "RESOLVED")  // Transition OPEN -> RESOLVED is invalid
-                            .with(csrf()))
+                            .param("status", "RESOLVED")) // Transition OPEN -> RESOLVED is invalid
                     .andExpect(status().isBadRequest());
         }
     }

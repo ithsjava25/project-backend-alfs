@@ -76,6 +76,8 @@ spring.profiles.active=demo
 
 *Alternatively, run with the profile directly via command line (see step 3).*
 
+> **Note:** Read more about [demo data](#demo-data) below.
+
 3. Start the application:
    ```bash
    # Using the property file
@@ -96,7 +98,7 @@ spring.profiles.active=demo
    password: admin
    ```
 
-> **Note:** To test file uploads and downloads, you'll need a local MinIO instance running. See the [Local MinIO setup](#local-minio-setup-dev-and-testing-file-upload-download) section below.
+> **Note:** To test file uploads and downloads, you'll need a local MinIO instance running. See the [Local MinIO setup](#local-minio-setup) section below.
 
 ## Typical User Flow
 1. **As a Whistleblower (Anonymous)**: Visit `/tickets/create` to submit a report. Save the provided token to follow up later.
@@ -212,7 +214,7 @@ The seeder will only run if the admin user does not exist, so it is safe to leav
 
 Once running, the H2 database console is available at `/h2-console` using the credentials in `application.properties` (JDBC URL: `jdbc:h2:mem:testdb`).
 
-## Local MinIO setup (dev) and testing file upload/download
+## Local MinIO setup
 
 1) Start MinIO locally (Docker)
 - Windows PowerShell example:

@@ -222,8 +222,8 @@ Once running, the H2 database console is available at `/h2-console` using the cr
 3) Verify application configuration (already set for local dev)
 - See `src/main/resources/application.properties`:
   - `storage.s3.endpoint=http://localhost:9000`
-  - `storage.s3.accessKey=minio`
-  - `storage.s3.secretKey=minio123`
+  - `storage.s3.accessKey=minioadmin`
+  - `storage.s3.secretKey=minioadmin`
   - `storage.s3.bucket=alfs-attachments`
   - `spring.servlet.multipart.max-file-size=50MB`
 

@@ -7,7 +7,7 @@ ALFS is a secure case management system for handling whistleblower reports, buil
 - **Ticket Lifecycle Management**: Full workflow support including assignment, status transitions, and public/internal comments.
 - **Audit Logging**: Comprehensive trail of all security-sensitive actions and ticket modifications.
 - **Server-Side Rendering**: Fast, secure UI built with JTE templates.
-- **Secure Storage**: File attachments managed via MinIO/S3 compatible storage.
+- **Secure Storage**: File attachments managed via MinIO/S3-compatible storage.
 - **Secure Access Model**: RBAC, ownership validation, and token-based access control.
 
 ## Security
@@ -106,10 +106,10 @@ spring.profiles.active=demo
 
 ## Design Decisions
 
-- Server-side rendering (JTE) was chosen over a SPA approach to reduce complexity
+- Server-side rendering (JTE) was chosen over an SPA approach to reduce complexity
   and minimize client-side security concerns (e.g., XSS, token handling)
 - Token-based access allows anonymous reporting without account creation
-- MinIO enables S3-compatible storage without without requiring a cloud provider
+- MinIO enables S3-compatible storage without requiring a cloud provider
 
 ## Project Structure
 - `controllers` — web endpoints (UI and API)

@@ -3,19 +3,20 @@
 ALFS is a secure case management system for handling whistleblower reports, built with Spring Boot.
 
 ## Features
- - Anonymous and authenticated ticket submission
- - Ticket lifecycle management (assignment, status, comments)
- - Internal comments for private admin/investigator communication
- - Audit logging for all key actions
- - Demo data available for quick local testing
+- **Anonymous & Authenticated Reporting**: Submit reports without an account using secure tokens or as a registered user.
+- **Ticket Lifecycle Management**: Full workflow support including assignment, status transitions, and public/internal comments.
+- **Audit Logging**: Comprehensive trail of all security-sensitive actions and ticket modifications.
+- **Server-Side Rendering**: Fast, secure UI built with JTE templates.
+- **Secure Storage**: File attachments managed via MinIO/S3 compatible storage.
+- **Secure Access Model**: RBAC, ownership validation, and token-based access control.
 
 ## Security
-- Secure password hashing with BCrypt
-- Role-based access control (RBAC)
-- Owner-based access restrictions
-- Token-based access for anonymous users
-- Server-side rendering with JTE ensures automatic HTML escaping to prevent XSS
-- Secure file uploads with MinIO storage
+- **RBAC**: Multi-layered permissions for Reporters, Investigators, and Admins.
+- **Owner-Based Access**: Strict isolation of ticket data based on reporter and assigned investigator.
+- **Secure Token Access**: Unique cryptographic tokens for anonymous ticket follow-ups.
+- **Data Protection**: Secure password hashing with BCrypt and CSRF protection for all state-changing requests.
+- **XSS Prevention**: Automatic HTML escaping via server-side JTE rendering.
+- **JWT Authentication**: Supports both browser cookies and API headers with database-backed role verification.
 
 ## Feature Details
 ### Anonymous Ticket Submission
@@ -42,9 +43,15 @@ The system supports two types of comments:
 - **Internal Notes**: Visible only to **INVESTIGATORS** and **ADMINS**. These are kept separate from public comments to ensure internal coordination stays private, making it easier to discuss case handling and assignments without exposing sensitive details.
 
 ### Audit Logging
-The application keeps an audit trail of important actions so changes can be reviewed later.  
-It records details such as the action type, affected field, previous value, new value, and timestamp.  
-This helps track ticket updates, assignment changes, status changes, comments, and other key workflow events.
+The application maintains a comprehensive audit trail of security-sensitive actions and ticket modifications.
+
+**What is logged:**
+- Ticket creation and status changes.
+- Investigator assignments and reassignments.
+- New public comments and internal notes.
+- File attachment uploads.
+
+Each log entry records the action type, affected field, previous and new values, the acting user, and a precise timestamp. This provides accountability and helps meet compliance requirements for whistleblower systems.
 
 ## Tech Stack
 - Java 25
@@ -81,7 +88,9 @@ spring.profiles.active=demo
    ```text
    http://localhost:8080
    ```
-5. Log in at `http://localhost:8080/login` using the default admin credentials:
+   *The landing page provides quick links to submit a report or log in.*
+
+5. Log in at `http://localhost:8080/login` (or via the UI) using the default admin credentials:
    ```text
    username: admin
    password: admin
@@ -95,13 +104,20 @@ spring.profiles.active=demo
 3. **As an Admin**: Login at `/login` (user: `admin`), then go to `/admin/tickets` to see all reports and assign them to investigators.
 4. **As an Investigator**: Login at `/login`, then check `/tickets/assigned` for cases assigned to you.
 
+## Design Decisions
+
+- Server-side rendering (JTE) was chosen over a SPA approach to reduce complexity
+  and minimize client-side security concerns (e.g., XSS, token handling).
+- Token-based access allows anonymous reporting without account creation
+- MinIO enables S3-compatible storage without external dependencies
+
 ## Project Structure
-- `controllers` — web endpoints
+- `controllers` — web endpoints (UI and API)
 - `services` — business logic
 - `repositories` — database access
 - `entities` — JPA models
 - `dto` and `mapper` — request/response mapping
-- `security` — authentication and JWT handling
+- `security` — Spring Security configuration, authentication, and access control
 
 ## Architecture
 
@@ -111,17 +127,13 @@ The application follows a layered architecture with server-side rendering:
 Browser (JTE) → Controller → Service → Repository → Database
 ```
 This layered architecture separates concerns:
-- Controllers handle HTTP and validation
-- Services enforce business rules and security
-- Repositories abstract persistence
+- **Controllers**: Handle HTTP requests, input validation, and view redirects.
+- **Services**: Orchestrate business logic, enforce security rules, and trigger audit logging.
+- **Repositories**: Abstract database persistence using Spring Data JPA.
+- **Storage Service**: Encapsulates interaction with MinIO/S3 for attachment handling.
+- **Audit Service**: Records a detailed trail of modifications for compliance and tracking.
 
-Security is enforced at both controller and service levels to prevent bypassing access rules.
-
-- **JTE Templates**: Generate the HTML on the server.
-- **Controllers**: Handle HTTP requests, form submissions, and redirects.
-- **Services**: Implement business logic, security checks, and audit logging.
-- **Repositories**: Standard Spring Data JPA repositories for H2.
-- **Storage Service**: Abstracts interaction with MinIO/S3 for file attachments.
+Security is enforced at both controller (URL-based) and service levels (method-based) to ensure defense-in-depth.
 
 ## CI/CD
 The project uses GitHub Actions for:
@@ -143,10 +155,20 @@ The system implements a multi-layered security model to protect whistleblower re
 ### Access Control Mechanisms
 
 1.  **Endpoint Protection**: Configured in `SecurityConfig.java`, defining which URL patterns are public (e.g., login, signup, anonymous ticket creation) and which require authentication.
-2.  **Method Security**: Using `@PreAuthorize` annotations on controller methods to enforce role requirements.
+2.  **Method Security**: Using `@PreAuthorize` annotations on controller methods to enforce role requirements (e.g., restricting status updates to Admins and Investigators).
 3.  **Owner-Based Access**: Tickets created by a `REPORTER` are only accessible to that specific user, the assigned `INVESTIGATOR`, and all `ADMIN` users.
 4.  **Token-Based Access**: For anonymous reports, a unique secure token is generated. Anyone with the token can view and comment on that specific ticket without needing an account.
-5.  **Role Refresh**: Roles are loaded from the database on every request (via JWT filter) to ensure permission changes take effect immediately.
+
+## JWT Authentication
+
+The application uses JSON Web Tokens (JWT) for stateless authentication, supporting both browser and API-based interactions.
+Even though the UI is server-rendered, the system remains stateless by storing the JWT in a cookie.
+
+### Key Features
+- **Dual-Source Lookup**: The system identifies the user via the `JWT` cookie (for browser/UI) or the `Authorization: Bearer <token>` header (for API clients).
+- **Database-Backed Roles**: Roles are reloaded from the database on every request. This ensures that permission changes (e.g., revoking admin rights) take effect immediately, even if the user has a long-lived token.
+- **Security Secret**: Local development uses a secret defined in `application.properties`. In production, this must be provided via the `JWT_SECRET` environment variable.
+- **API Endpoints**: RESTful authentication is available at `/auth/login` and `/auth/signup` for JSON-based programmatic access.
 
 ## Demo Data
 
@@ -178,7 +200,7 @@ The seeder will only run if the admin user does not exist, so it is safe to leav
 | reporter1 | reporter1 | REPORTER |
 | reporter2 | reporter2 | REPORTER |
 
-Once running, the H2 database console is available at `/h2-console` using the credentials in `application.properties`.
+Once running, the H2 database console is available at `/h2-console` using the credentials in `application.properties` (JDBC URL: `jdbc:h2:mem:testdb`).
 
 ## Local MinIO setup (dev) and testing file upload/download
 

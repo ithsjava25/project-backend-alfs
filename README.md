@@ -107,9 +107,9 @@ spring.profiles.active=demo
 ## Design Decisions
 
 - Server-side rendering (JTE) was chosen over a SPA approach to reduce complexity
-  and minimize client-side security concerns (e.g., XSS, token handling).
+  and minimize client-side security concerns (e.g., XSS, token handling)
 - Token-based access allows anonymous reporting without account creation
-- MinIO enables S3-compatible storage without external dependencies
+- MinIO enables S3-compatible storage without without requiring a cloud provider
 
 ## Project Structure
 - `controllers` — web endpoints (UI and API)

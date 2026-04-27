@@ -177,6 +177,7 @@ public class DemoDataService {
     a.setTicket(ticket);
     a.setFileName(fileName);
     a.setS3Key("demo/" + UUID.randomUUID());
+    a.setUploadedBy(actor);
 
     attachmentRepository.save(a);
 

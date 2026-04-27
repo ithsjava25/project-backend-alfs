@@ -170,15 +170,16 @@ Even though the UI is server-rendered, the system remains stateless by storing t
 - **Security Secret**: Local development uses a secret defined in `application.properties`. In production, this must be provided via the `JWT_SECRET` environment variable.
 - **API Endpoints**: RESTful authentication is available at `/auth/login` and `/auth/signup` for JSON-based programmatic access.
 
-# 🚀 API Documentation & Testing
-## This project uses Swagger UI to provide a visual interface for exploring and testing the API endpoints.
+## API Documentation & Testing
+
+This project uses Swagger UI to provide a visual interface for exploring and testing the API endpoints.
 
 ### Accessing Swagger
 Once the application is running, you can access the interactive documentation at:
 
-Swagger UI: http://localhost:8080/swagger-ui/index.html
+- Swagger UI: http://localhost:8080/swagger-ui/index.html
+- OpenAPI Spec (JSON): http://localhost:8080/v3/api-docs
 
-OpenAPI Spec (JSON): http://localhost:8080/v3/api-docs
 ## Demo Data
 
 The application includes a demo data seeder that populates the database with realistic test data on startup.

@@ -52,6 +52,11 @@ public class SecurityConfig {
                         .requestMatchers("/tickets/token/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/tickets/*/comments").permitAll()
                         .requestMatchers("/error/**").permitAll()
+                                       
+                        //swagger
+                        .requestMatchers("/swagger-ui/**").permitAll()
+                        .requestMatchers("/v3/api-docs/**").permitAll()
+                        .requestMatchers("/swagger-ui.html").permitAll()
 
                         //allow access to endpoints during development
                         .requestMatchers("/tickets/previewTicket").permitAll()

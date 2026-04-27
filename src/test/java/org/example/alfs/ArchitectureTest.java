@@ -15,10 +15,10 @@ import org.junit.jupiter.api.Test;
  */
 class ArchitectureTest {
 
-  private final JavaClasses classes = new ClassFileImporter()
+  private final JavaClasses classes =
+      new ClassFileImporter()
           .withImportOption(new ImportOption.DoNotIncludeTests())
           .importPackages("org.example.alfs");
-
 
   /**
    * Layer Rules

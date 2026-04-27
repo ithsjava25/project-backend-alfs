@@ -16,7 +16,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-
 @Controller
 @RequestMapping("/tickets")
 public class TicketController {
@@ -178,7 +177,4 @@ public class TicketController {
     model.addAttribute("token", token);
     return "ticket-created";
   }
-  // create comment
-  // View comment
-  // upload attachment
 }

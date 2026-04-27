@@ -1,4 +1,4 @@
-package org.example.alfs.controllers;
+package org.example.alfs.integration;
 
 import org.example.alfs.dto.ticket.TicketCreateDTO;
 import org.example.alfs.entities.User;

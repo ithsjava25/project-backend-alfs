@@ -1,4 +1,4 @@
-package org.example.alfs.controllers;
+package org.example.alfs.integration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;

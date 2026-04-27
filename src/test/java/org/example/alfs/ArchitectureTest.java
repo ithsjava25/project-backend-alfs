@@ -4,6 +4,7 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.*;
 
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
+import com.tngtech.archunit.core.importer.ImportOption;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -14,7 +15,10 @@ import org.junit.jupiter.api.Test;
  */
 class ArchitectureTest {
 
-  private final JavaClasses classes = new ClassFileImporter().importPackages("org.example.alfs");
+  private final JavaClasses classes = new ClassFileImporter()
+          .withImportOption(new ImportOption.DoNotIncludeTests())
+          .importPackages("org.example.alfs");
+
 
   /**
    * Layer Rules

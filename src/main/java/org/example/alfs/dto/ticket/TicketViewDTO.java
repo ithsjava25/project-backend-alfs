@@ -28,7 +28,7 @@ public class TicketViewDTO {
   private String assignedInvestigatorName;
 
   private static final DateTimeFormatter DISPLAY_FORMATTER =
-    DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm", Locale.forLanguageTag("sv-SE"));
+      DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm", Locale.forLanguageTag("sv-SE"));
 
   public String getFormattedCreatedAt() {
     if (createdAt == null) return "";

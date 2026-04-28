@@ -13,83 +13,99 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @Configuration
 @EnableMethodSecurity
 public class SecurityConfig {
-    private final JwtAuthenticationFilter jwtFilter;
+  private final JwtAuthenticationFilter jwtFilter;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtFilter) {this.jwtFilter = jwtFilter;}
+  public SecurityConfig(JwtAuthenticationFilter jwtFilter) {
+    this.jwtFilter = jwtFilter;
+  }
 
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+  @Bean
+  public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
-        http
-                // Only for development (H2 console support)
-                .securityMatcher("/**")
+    http
+        // Only for development (H2 console support)
+        .securityMatcher("/**")
+        .csrf(csrf -> csrf.disable())
+        .headers(headers -> headers.frameOptions(frame -> frame.disable()))
 
-                .csrf(csrf -> csrf.disable())
+        // stateless jwt
+        .sessionManagement(
+            session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
-                .headers(headers -> headers.frameOptions(frame -> frame.disable()))
+        // Authorization strategy:
+        // - JWT is used for authentication (identifying the user)
+        // - User roles are NOT trusted from the JWT
+        // - Roles are always loaded from the database
+        // This ensures that permission changes take effect immediately
+        .authorizeHttpRequests(
+            auth ->
+                auth.requestMatchers("/auth/login")
+                    .permitAll()
+                    .requestMatchers("/auth/signup")
+                    .permitAll()
+                    .requestMatchers("/auth/logout")
+                    .permitAll()
+                    .requestMatchers("/auth/hash")
+                    .permitAll()
+                    .requestMatchers("/h2-console/**")
+                    .permitAll()
+                    .requestMatchers("/", "/startPage")
+                    .permitAll()
+                    .requestMatchers(HttpMethod.POST, "/tickets/create")
+                    .permitAll()
+                    .requestMatchers(HttpMethod.GET, "/tickets/create")
+                    .permitAll()
+                    .requestMatchers("/tickets/ticket-created")
+                    .permitAll()
+                    .requestMatchers("/tickets/token/**")
+                    .permitAll()
+                    .requestMatchers(HttpMethod.POST, "/tickets/*/comments")
+                    .permitAll()
+                    .requestMatchers("/error/**")
+                    .permitAll()
 
-                // stateless jwt
-                .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                )
+                    // swagger
+                    .requestMatchers("/swagger-ui/**")
+                    .permitAll()
+                    .requestMatchers("/v3/api-docs/**")
+                    .permitAll()
+                    .requestMatchers("/swagger-ui.html")
+                    .permitAll()
 
+                    // allow access to endpoints during development
+                    .requestMatchers("/tickets/previewTicket")
+                    .permitAll()
+                    .requestMatchers(HttpMethod.POST, "/api/files/upload")
+                    .permitAll()
+                    .requestMatchers("/css/**", "/js/**", "/images/**", "/static/**")
+                    .permitAll()
+                    .requestMatchers("/login", "/login-form")
+                    .permitAll()
+                    .requestMatchers("/signup", "/signup-form")
+                    .permitAll()
+                    .anyRequest()
+                    .authenticated())
+        .exceptionHandling(
+            exception ->
+                exception
 
-                // Authorization strategy:
-                // - JWT is used for authentication (identifying the user)
-                // - User roles are NOT trusted from the JWT
-                // - Roles are always loaded from the database
-                // This ensures that permission changes take effect immediately
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/login").permitAll()
-                        .requestMatchers("/auth/signup").permitAll()
-                        .requestMatchers("/auth/logout").permitAll()
-                        .requestMatchers("/auth/hash").permitAll()
-                        .requestMatchers("/h2-console/**").permitAll()
-                        .requestMatchers("/", "/startPage").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/tickets/create").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/tickets/create").permitAll()
-                        .requestMatchers("/tickets/ticket-created").permitAll()
-                        .requestMatchers("/tickets/token/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/tickets/*/comments").permitAll()
-                        .requestMatchers("/error/**").permitAll()
-                                       
-                        //swagger
-                        .requestMatchers("/swagger-ui/**").permitAll()
-                        .requestMatchers("/v3/api-docs/**").permitAll()
-                        .requestMatchers("/swagger-ui.html").permitAll()
-
-                        //allow access to endpoints during development
-                        .requestMatchers("/tickets/previewTicket").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/files/upload").permitAll()
-                        .requestMatchers("/css/**", "/js/**", "/images/**", "/static/**").permitAll()
-                        .requestMatchers("/login", "/login-form").permitAll()
-                        .requestMatchers("/signup", "/signup-form").permitAll()
-                        .anyRequest().authenticated()
-                )
-
-                .exceptionHandling(exception -> exception
-
-                        // Use custom error page for 403 (Spring Security access denied)
-                        .accessDeniedHandler((request, response, ex) -> {
-                            request.getRequestDispatcher("/error/403")
-                                    .forward(request, response);
+                    // Use custom error page for 403 (Spring Security access denied)
+                    .accessDeniedHandler(
+                        (request, response, ex) -> {
+                          request.getRequestDispatcher("/error/403").forward(request, response);
                         })
 
-                        // Use custom error page for 401 (unauthorized)
-                        .authenticationEntryPoint((request, response, ex) -> {
-                            request.getRequestDispatcher("/error/401")
-                                    .forward(request, response);
-                        })
-                )
+                    // Use custom error page for 401 (unauthorized)
+                    .authenticationEntryPoint(
+                        (request, response, ex) -> {
+                          request.getRequestDispatcher("/error/401").forward(request, response);
+                        }))
 
+        // disable DEFAULT LOGIN
+        .formLogin(form -> form.disable())
+        .httpBasic(basic -> basic.disable())
+        .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
-                // disable DEFAULT LOGIN
-                .formLogin(form -> form.disable())
-                .httpBasic(basic -> basic.disable())
-
-
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
-
-        return http.build();
-    }
+    return http.build();
+  }
 }

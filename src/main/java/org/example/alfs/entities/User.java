@@ -16,25 +16,24 @@ Users have different roles such as admin or investigator.
 @NoArgsConstructor
 public class User {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-    @Column(nullable = false, unique = true, length = 100)
-    private String username;
+  @Column(nullable = false, unique = true, length = 100)
+  private String username;
 
-    @Column(nullable = false, length = 255)
-    private String passwordHash;
+  @Column(nullable = false, length = 255)
+  private String passwordHash;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private Role role;
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false)
+  private Role role;
 
-    @PrePersist
-    public void prePersist() {
-        if (role == null) {
-            role = Role.REPORTER;
-        }
+  @PrePersist
+  public void prePersist() {
+    if (role == null) {
+      role = Role.REPORTER;
     }
-
+  }
 }

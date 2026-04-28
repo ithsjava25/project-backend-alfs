@@ -12,47 +12,45 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 public class AuthService {
 
-    private final PasswordEncoder passwordEncoder;
-    private final UserRepository userRepository;
+  private final PasswordEncoder passwordEncoder;
+  private final UserRepository userRepository;
 
-    public AuthService(PasswordEncoder passwordEncoder, UserRepository userRepository) {
-        this.passwordEncoder = passwordEncoder;
-        this.userRepository = userRepository;
+  public AuthService(PasswordEncoder passwordEncoder, UserRepository userRepository) {
+    this.passwordEncoder = passwordEncoder;
+    this.userRepository = userRepository;
+  }
+
+  /** Authenticates a user by verifying username and password. */
+  public User login(String username, String password) {
+
+    User user =
+        userRepository
+            .findByUsername(username)
+            .orElseThrow(
+                () -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Bad credentials"));
+
+    if (!passwordEncoder.matches(password, user.getPasswordHash())) {
+      throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Bad credentials");
     }
 
-    /**
-     * Authenticates a user by verifying username and password.
-     */
-    public User login(String username, String password) {
+    return user;
+  }
 
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Bad credentials"));
+  /**
+   * Registers a new user by creating an account with a hashed password. The user is assigned the
+   * default role REPORTER.
+   */
+  public void signup(SignupRequestDTO request) {
 
-
-
-        if (!passwordEncoder.matches(password, user.getPasswordHash())) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Bad credentials");
-        }
-
-        return user;
+    if (userRepository.findByUsername(request.getUsername()).isPresent()) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username already exists");
     }
 
+    User user = new User();
+    user.setUsername(request.getUsername());
+    user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+    user.setRole(Role.REPORTER);
 
-    /**
-     * Registers a new user by creating an account with a hashed password.
-     * The user is assigned the default role REPORTER.
-     */
-    public void signup(SignupRequestDTO request) {
-
-        if (userRepository.findByUsername(request.getUsername()).isPresent()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Username already exists");
-        }
-
-        User user = new User();
-        user.setUsername(request.getUsername());
-        user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
-        user.setRole(Role.REPORTER);
-
-        userRepository.save(user);
-    }
+    userRepository.save(user);
+  }
 }

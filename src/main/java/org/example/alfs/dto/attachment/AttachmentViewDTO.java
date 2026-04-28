@@ -3,64 +3,75 @@ package org.example.alfs.dto.attachment;
 import java.time.LocalDateTime;
 
 public class AttachmentViewDTO {
-    private Long id;
-    private Long ticketId;
-    private String fileName;
-    private String downloadUrl;
-    private LocalDateTime uploadedAt;
-    private String uploadedBy;
+  private Long id;
+  private Long ticketId;
+  private String fileName;
+  private String downloadUrl;
+  private LocalDateTime uploadedAt;
+  private String uploadedBy;
 
-    public AttachmentViewDTO() {}
+  public AttachmentViewDTO() {}
 
-    public AttachmentViewDTO(Long id, Long ticketId, String fileName, String downloadUrl, LocalDateTime uploadedAt, String uploadedBy) {
-        this.id = id;
-        this.ticketId = ticketId;
-        this.fileName = fileName;
-        this.downloadUrl = downloadUrl;
-        this.uploadedAt = uploadedAt;
-        this.uploadedBy = uploadedBy;
-    }
+  public AttachmentViewDTO(
+      Long id,
+      Long ticketId,
+      String fileName,
+      String downloadUrl,
+      LocalDateTime uploadedAt,
+      String uploadedBy) {
+    this.id = id;
+    this.ticketId = ticketId;
+    this.fileName = fileName;
+    this.downloadUrl = downloadUrl;
+    this.uploadedAt = uploadedAt;
+    this.uploadedBy = uploadedBy;
+  }
 
-    public Long getId() {
-        return id;
-    }
+  public Long getId() {
+    return id;
+  }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
+  public void setId(Long id) {
+    this.id = id;
+  }
 
-    public Long getTicketId() {
-        return ticketId;
-    }
+  public Long getTicketId() {
+    return ticketId;
+  }
 
-    public void setTicketId(Long ticketId) {
-        this.ticketId = ticketId;
-    }
+  public void setTicketId(Long ticketId) {
+    this.ticketId = ticketId;
+  }
 
-    public String getFileName() {
-        return fileName;
-    }
+  public String getFileName() {
+    return fileName;
+  }
 
-    public void setFileName(String fileName) {
-        this.fileName = fileName;
-    }
+  public void setFileName(String fileName) {
+    this.fileName = fileName;
+  }
 
-    public String getDownloadUrl() {
-        return downloadUrl;
-    }
+  public String getDownloadUrl() {
+    return downloadUrl;
+  }
 
-    public void setDownloadUrl(String downloadUrl) {
-        this.downloadUrl = downloadUrl;
-    }
+  public void setDownloadUrl(String downloadUrl) {
+    this.downloadUrl = downloadUrl;
+  }
 
-    public LocalDateTime getUploadedAt() {
-        return uploadedAt;
-    }
+  public LocalDateTime getUploadedAt() {
+    return uploadedAt;
+  }
 
-    public void setUploadedAt(LocalDateTime uploadedAt) {
-        this.uploadedAt = uploadedAt;
-    }
+  public void setUploadedAt(LocalDateTime uploadedAt) {
+    this.uploadedAt = uploadedAt;
+  }
 
-    public String getUploadedBy() { return uploadedBy; }
-    public void setUploadedBy(String uploadedBy) { this.uploadedBy = uploadedBy; }
+  public String getUploadedBy() {
+    return uploadedBy;
+  }
+
+  public void setUploadedBy(String uploadedBy) {
+    this.uploadedBy = uploadedBy;
+  }
 }

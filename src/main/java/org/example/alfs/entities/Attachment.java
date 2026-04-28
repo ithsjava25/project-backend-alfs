@@ -1,9 +1,8 @@
 package org.example.alfs.entities;
 
 import jakarta.persistence.*;
-import lombok.*;
-
 import java.time.LocalDateTime;
+import lombok.*;
 
 /*
 Represent a file uploaded with Ticket.
@@ -17,28 +16,28 @@ Stores metadata about the file and the file reference s3key.
 @NoArgsConstructor
 public class Attachment {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-    @Column(nullable = false)
-    private String fileName;
+  @Column(nullable = false)
+  private String fileName;
 
-    @Column(nullable = false)
-    private String s3Key;
+  @Column(nullable = false)
+  private String s3Key;
 
-    private LocalDateTime uploadedAt;
+  private LocalDateTime uploadedAt;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "uploaded_by")
-    private User uploadedBy;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "uploaded_by")
+  private User uploadedBy;
 
-    @PrePersist
-    public void prePersist() {
-        uploadedAt = LocalDateTime.now();
-    }
+  @PrePersist
+  public void prePersist() {
+    uploadedAt = LocalDateTime.now();
+  }
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "ticket_id", nullable = false)
-    private Ticket ticket;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "ticket_id", nullable = false)
+  private Ticket ticket;
 }

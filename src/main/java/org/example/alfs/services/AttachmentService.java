@@ -1,5 +1,6 @@
 package org.example.alfs.services;
 
+import java.util.List;
 import org.example.alfs.entities.Attachment;
 import org.example.alfs.entities.Ticket;
 import org.example.alfs.entities.User;
@@ -14,128 +15,125 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.List;
-
 @Service
 public class AttachmentService {
 
-    private final MinioStorageService storageService;
-    private final AttachmentRepository attachmentRepository;
-    private final TicketRepository ticketRepository;
-    private final AuditService auditService;
+  private final MinioStorageService storageService;
+  private final AttachmentRepository attachmentRepository;
+  private final TicketRepository ticketRepository;
+  private final AuditService auditService;
 
+  public AttachmentService(
+      MinioStorageService storageService,
+      AttachmentRepository attachmentRepository,
+      TicketRepository ticketRepository,
+      AuditService auditService) {
+    this.storageService = storageService;
+    this.attachmentRepository = attachmentRepository;
+    this.ticketRepository = ticketRepository;
+    this.auditService = auditService;
+  }
 
-    public AttachmentService(MinioStorageService storageService,
-                             AttachmentRepository attachmentRepository,
-                             TicketRepository ticketRepository,
-                             AuditService auditService) {
-        this.storageService = storageService;
-        this.attachmentRepository = attachmentRepository;
-        this.ticketRepository = ticketRepository;
-        this.auditService = auditService;
+  @Transactional
+  public Attachment uploadToTicket(Long ticketId, MultipartFile file, User user, String token)
+      throws Exception {
+
+    Ticket ticket;
+
+    if (user != null) {
+      // logged in
+      ticket =
+          ticketRepository
+              .findById(ticketId)
+              .orElseThrow(
+                  () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
+    } else {
+
+      // validate token first
+      if (token == null || token.isBlank()) {
+        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid or missing token");
+      }
+
+      // anonymous via token
+      ticket =
+          ticketRepository
+              .findByReporterToken(token)
+              .orElseThrow(
+                  () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
     }
 
-    @Transactional
-    public Attachment uploadToTicket(Long ticketId, MultipartFile file, User user, String token) throws Exception {
+    checkAccess(ticket, user, token);
 
-        Ticket ticket;
+    String objectKey = storageService.upload(file);
 
-        if (user != null) {
-            // logged in
-            ticket = ticketRepository.findById(ticketId)
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
-        } else {
+    try {
+      String fileName = file.getOriginalFilename();
+      if (fileName == null || fileName.isBlank()) {
+        fileName = "file";
+      }
 
-            // validate token first
-            if (token == null || token.isBlank()) {
-                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid or missing token");
-            }
+      Attachment att = new Attachment();
+      att.setFileName(fileName);
+      att.setS3Key(objectKey);
+      att.setTicket(ticket);
+      att.setUploadedBy(user);
 
-            // anonymous via token
-            ticket = ticketRepository.findByReporterToken(token)
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket not found"));
-        }
+      attachmentRepository.save(att);
 
-        checkAccess(ticket, user, token);
+      auditService.log(
+          AuditAction.ATTACHMENT_ADDED, "attachments", null, att.getFileName(), ticket, user);
 
-        String objectKey = storageService.upload(file);
+      return att;
 
-        try {
-            String fileName = file.getOriginalFilename();
-            if (fileName == null || fileName.isBlank()) {
-                fileName = "file";
-            }
+    } catch (Exception e) {
+      try {
+        storageService.delete(objectKey);
+      } catch (Exception deleteEx) {
+        e.addSuppressed(deleteEx);
+      }
+      throw e;
+    }
+  }
 
-            Attachment att = new Attachment();
-            att.setFileName(fileName);
-            att.setS3Key(objectKey);
-            att.setTicket(ticket);
-            att.setUploadedBy(user);
+  private void checkAccess(Ticket ticket, User user, String token) {
 
-            attachmentRepository.save(att);
-
-            auditService.log(
-                    AuditAction.ATTACHMENT_ADDED,
-                    "attachments",
-                    null,
-                    att.getFileName(),
-                    ticket,
-                    user
-            );
-
-            return att;
-
-        } catch (Exception e) {
-            try {
-                storageService.delete(objectKey);
-            } catch (Exception deleteEx) {
-                e.addSuppressed(deleteEx);
-            }
-            throw e;
-        }
+    // ANONYMOUS VIA TOKEN
+    if (user == null) {
+      if (token != null && token.equals(ticket.getReporterToken())) {
+        return;
+      }
+      throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid or missing token");
     }
 
-    private void checkAccess(Ticket ticket, User user, String token) {
+    // ADMIN
+    if (user.getRole() == Role.ADMIN) return;
 
-        // ANONYMOUS VIA TOKEN
-        if (user == null) {
-            if (token != null && token.equals(ticket.getReporterToken())) {
-                return;
-            }
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid or missing token");
-        }
-
-        // ADMIN
-        if (user.getRole() == Role.ADMIN) return;
-
-        // INVESTIGATOR
-        if (user.getRole() == Role.INVESTIGATOR) {
-            if (ticket.getInvestigator() != null &&
-                    ticket.getInvestigator().getId().equals(user.getId())) {
-                return;
-            }
-        }
-
-        // REPORTER
-        if (user.getRole() == Role.REPORTER) {
-            if (ticket.getReporter() != null &&
-                    ticket.getReporter().getId().equals(user.getId())) {
-                return;
-            }
-        }
-
-        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
+    // INVESTIGATOR
+    if (user.getRole() == Role.INVESTIGATOR) {
+      if (ticket.getInvestigator() != null
+          && ticket.getInvestigator().getId().equals(user.getId())) {
+        return;
+      }
     }
 
-    public List<Attachment> getAttachmentsByTicketId(Long ticketId) {
-        return attachmentRepository.findByTicketId(ticketId);
+    // REPORTER
+    if (user.getRole() == Role.REPORTER) {
+      if (ticket.getReporter() != null && ticket.getReporter().getId().equals(user.getId())) {
+        return;
+      }
     }
 
-    public Attachment getAttachmentById(Long id) {
-        return attachmentRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "Attachment not found: " + id
-                ));
-    }
+    throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
+  }
+
+  public List<Attachment> getAttachmentsByTicketId(Long ticketId) {
+    return attachmentRepository.findByTicketId(ticketId);
+  }
+
+  public Attachment getAttachmentById(Long id) {
+    return attachmentRepository
+        .findById(id)
+        .orElseThrow(
+            () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Attachment not found: " + id));
+  }
 }

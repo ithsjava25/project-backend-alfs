@@ -11,10 +11,10 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class DemoDataInitializer implements CommandLineRunner {
 
-    private final DemoDataService demoDataService;
+  private final DemoDataService demoDataService;
 
-    @Override
-    public void run(String... args) {
-        demoDataService.seedDemoData();
-    }
+  @Override
+  public void run(String... args) {
+    demoDataService.seedDemoData();
+  }
 }

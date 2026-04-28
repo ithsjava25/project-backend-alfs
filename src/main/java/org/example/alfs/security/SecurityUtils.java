@@ -8,42 +8,43 @@ import org.springframework.stereotype.Component;
 @Component
 public class SecurityUtils {
 
-    private final UserRepository userRepository;
+  private final UserRepository userRepository;
 
-    public SecurityUtils(UserRepository userRepository) {
-        this.userRepository = userRepository;
+  public SecurityUtils(UserRepository userRepository) {
+    this.userRepository = userRepository;
+  }
+
+  public User getCurrentUser() {
+
+    var authentication = SecurityContextHolder.getContext().getAuthentication();
+
+    if (authentication == null || !authentication.isAuthenticated()) {
+      throw new RuntimeException("No authenticated user in security context");
     }
 
-    public User getCurrentUser() {
+    String username = authentication.getName();
 
-        var authentication = SecurityContextHolder.getContext().getAuthentication();
+    return userRepository
+        .findByUsername(username)
+        .orElseThrow(() -> new RuntimeException("Authenticated user not found in database"));
+  }
 
-        if (authentication == null || !authentication.isAuthenticated()) {
-            throw new RuntimeException("No authenticated user in security context");
-        }
+  public User getCurrentUserOrNull() {
+    try {
+      return getCurrentUser();
+    } catch (RuntimeException ex) {
 
-        String username = authentication.getName();
+      String message = ex.getMessage();
 
-        return userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Authenticated user not found in database"));
+      boolean authFailure =
+          "No authenticated user in security context".equals(message)
+              || "Authenticated user not found in database".equals(message);
+
+      if (authFailure) {
+        return null;
+      }
+
+      throw ex;
     }
-
-    public User getCurrentUserOrNull() {
-        try {
-            return getCurrentUser();
-        } catch (RuntimeException ex) {
-
-            String message = ex.getMessage();
-
-            boolean authFailure =
-                    "No authenticated user in security context".equals(message) ||
-                            "Authenticated user not found in database".equals(message);
-
-            if (authFailure) {
-                return null;
-            }
-
-            throw ex;
-        }
-    }
+  }
 }

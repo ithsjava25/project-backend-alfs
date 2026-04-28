@@ -10,9 +10,7 @@ import lombok.Data;
 @Data
 public class CommentCreateDTO {
 
-    @NotBlank
-    private String message;
+  @NotBlank private String message;
 
-    private boolean internalNote = false;
-
+  private boolean internalNote = false;
 }

@@ -9,6 +9,5 @@ Admin assigns ticket to investigator
 @Data
 public class TicketAssignDTO {
 
-    @NotNull
-    private Long investigatorId;
+  @NotNull private Long investigatorId;
 }

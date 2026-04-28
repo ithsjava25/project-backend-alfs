@@ -6,22 +6,22 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class TicketCommentMapper {
-    public CommentViewDTO entityToViewDTO(TicketComment comment) {
-        CommentViewDTO dto = new CommentViewDTO();
+  public CommentViewDTO entityToViewDTO(TicketComment comment) {
+    CommentViewDTO dto = new CommentViewDTO();
 
-        dto.setId(comment.getId());
-        dto.setMessage(comment.getMessage());
-        dto.setCreatedAt(comment.getCreatedAt());
-        dto.setInternalNote(comment.isInternalNote());
+    dto.setId(comment.getId());
+    dto.setMessage(comment.getMessage());
+    dto.setCreatedAt(comment.getCreatedAt());
+    dto.setInternalNote(comment.isInternalNote());
 
-        if (comment.getAuthor() != null) {
-            dto.setAuthor(comment.getAuthor().getUsername());
-            dto.setRole(comment.getAuthor().getRole().name());
-        } else {
-            dto.setAuthor("Anonymous");
-            dto.setRole(null);
-        }
-
-        return dto;
+    if (comment.getAuthor() != null) {
+      dto.setAuthor(comment.getAuthor().getUsername());
+      dto.setRole(comment.getAuthor().getRole().name());
+    } else {
+      dto.setAuthor("Anonymous");
+      dto.setRole(null);
     }
+
+    return dto;
+  }
 }

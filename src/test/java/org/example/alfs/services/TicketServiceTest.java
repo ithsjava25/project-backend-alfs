@@ -1,5 +1,11 @@
 package org.example.alfs.services;
 
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
+import java.util.List;
+import java.util.Optional;
 import org.example.alfs.dto.ticket.TicketCreateDTO;
 import org.example.alfs.dto.ticket.TicketViewDTO;
 import org.example.alfs.entities.Ticket;
@@ -22,830 +28,845 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.List;
-import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
-
 @DisplayName("TicketService Test")
 @ExtendWith(MockitoExtension.class)
 class TicketServiceTest {
 
-    @Mock
-    TicketRepository ticketRepository;
-    @Mock
-    TicketMapper ticketMapper;
-    @Mock
-    UserRepository userRepository;
-    @Mock
-    SecurityUtils securityUtils;
-    @Mock
-    AuditService auditService;
+  @Mock TicketRepository ticketRepository;
+  @Mock TicketMapper ticketMapper;
+  @Mock UserRepository userRepository;
+  @Mock SecurityUtils securityUtils;
+  @Mock AuditService auditService;
 
-    @InjectMocks
-    TicketService ticketService;
+  @InjectMocks TicketService ticketService;
 
-    private Ticket openTicket() {
-        Ticket t = new Ticket();
-        t.setId(1L);
-        t.setStatus(TicketStatus.OPEN);
-        return t;
+  private Ticket openTicket() {
+    Ticket t = new Ticket();
+    t.setId(1L);
+    t.setStatus(TicketStatus.OPEN);
+    return t;
+  }
+
+  private User adminUser() {
+    User u = new User();
+    u.setId(100L);
+    u.setRole(Role.ADMIN);
+    return u;
+  }
+
+  private User investigatorUser() {
+    User u = new User();
+    u.setId(200L);
+    u.setRole(Role.INVESTIGATOR);
+    return u;
+  }
+
+  private User reporterUser() {
+    User u = new User();
+    u.setId(300L);
+    u.setRole(Role.REPORTER);
+    return u;
+  }
+
+  @Nested
+  @DisplayName("createNewTicket tests")
+  class CreateNewTicketTests {
+
+    @Test
+    @DisplayName("createNewTicket should set reporter as user")
+    void createNewTicket_shouldSetReporterAsUser() {
+      // Arrange
+      TicketCreateDTO dto = new TicketCreateDTO();
+      dto.setTitle("Test Ticket");
+      dto.setDescription("This is a test ticket");
+      User reporter = reporterUser();
+
+      TicketViewDTO viewDTO = new TicketViewDTO();
+
+      when(securityUtils.getCurrentUserOrNull()).thenReturn(reporter);
+      when(ticketRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+      when(ticketMapper.entityToViewDTO(any())).thenReturn(viewDTO);
+
+      // Act
+      TicketViewDTO result = ticketService.createNewTicket(dto);
+
+      // Assert
+      verify(ticketRepository)
+          .save(
+              argThat(
+                  ticket ->
+                      reporter.equals(ticket.getReporter())
+                          && ticket.getReporterToken() == null
+                          && "Test Ticket".equals(ticket.getTitle())
+                          && "This is a test ticket".equals(ticket.getDescription())));
+      assertNull(result.getToken());
     }
 
-    private User adminUser() {
-        User u = new User();
-        u.setId(100L);
-        u.setRole(Role.ADMIN);
-        return u;
+    @Test
+    @DisplayName("createNewTicket should set reporter token when user is not authenticated")
+    void createNewTicket_shouldSetReporterToken_whenAnonymous() {
+      // Arrange
+      TicketCreateDTO dto = new TicketCreateDTO();
+      dto.setTitle("Anonymous Ticket");
+      dto.setDescription("Filed anonymously");
+
+      TicketViewDTO viewDTO = new TicketViewDTO();
+
+      when(securityUtils.getCurrentUserOrNull()).thenReturn(null);
+      when(ticketRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+      when(ticketMapper.entityToViewDTO(any())).thenReturn(viewDTO);
+
+      // Act
+      ArgumentCaptor<Ticket> ticketCaptor = ArgumentCaptor.forClass(Ticket.class);
+      TicketViewDTO result = ticketService.createNewTicket(dto);
+
+      // Assert
+      verify(ticketRepository).save(ticketCaptor.capture());
+      Ticket saved = ticketCaptor.getValue();
+      assertNull(saved.getReporter());
+      assertNotNull(saved.getReporterToken());
+      assertEquals(saved.getReporterToken(), result.getToken());
+    }
+  }
+
+  @Nested
+  @DisplayName("getTicketByToken tests")
+  class GetTicketByTokenTests {
+
+    @Test
+    @DisplayName("Valid token should return ticket")
+    void getTicketByToken_shouldReturnTicket() {
+      // Arrange
+      Ticket ticket = new Ticket();
+      String token = "valid-token";
+
+      when(ticketRepository.findByReporterToken(token)).thenReturn(Optional.of(ticket));
+      when(ticketMapper.entityToViewDTO(any())).thenReturn(new TicketViewDTO());
+
+      // Act + Assert
+      assertDoesNotThrow(() -> ticketService.getTicketByToken(token));
+      verify(ticketMapper).entityToViewDTO(ticket);
     }
 
-    private User investigatorUser() {
-        User u = new User();
-        u.setId(200L);
-        u.setRole(Role.INVESTIGATOR);
-        return u;
+    @Test
+    @DisplayName("Invalid token should throw Not found")
+    void getTicketByToken_invalidToken_shouldThrowNotFound() {
+      // Arrange
+      when(ticketRepository.findByReporterToken(any())).thenReturn(Optional.empty());
+
+      // Act
+      ResponseStatusException ex =
+          assertThrows(
+              ResponseStatusException.class, () -> ticketService.getTicketByToken("invalid-token"));
+
+      // Assert
+      assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
+    }
+  }
+
+  @Nested
+  @DisplayName("getTicketById tests")
+  class GetTicketByIdTests {
+
+    @Test
+    @DisplayName("getTicketById should return ticket when found and access is granted")
+    void getTicketById_shouldReturnTicket_whenFound() {
+      // Arrange
+      Ticket ticket = openTicket();
+      User admin = adminUser();
+      TicketViewDTO expected = new TicketViewDTO();
+
+      when(securityUtils.getCurrentUser()).thenReturn(admin);
+      when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+      when(ticketMapper.entityToViewDTO(ticket)).thenReturn(expected);
+
+      // Act
+      TicketViewDTO result = ticketService.getTicketById(1L);
+
+      // Assert
+      assertSame(expected, result);
+      verify(ticketMapper).entityToViewDTO(ticket);
     }
 
-    private User reporterUser() {
-        User u = new User();
-        u.setId(300L);
-        u.setRole(Role.REPORTER);
-        return u;
+    @Test
+    @DisplayName("getTicketById should throw Not Found when ticket does not exist")
+    void getTicketById_shouldThrow_whenNotFound() {
+      // Arrange
+      when(ticketRepository.findById(1L)).thenReturn(Optional.empty());
+
+      // Act
+      ResponseStatusException ex =
+          assertThrows(ResponseStatusException.class, () -> ticketService.getTicketById(1L));
+
+      // Assert
+      assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
+    }
+  }
+
+  @Nested
+  @DisplayName("getMyTickets tests")
+  class GetMyTicketsTests {
+
+    @Test
+    @DisplayName("Should return tickets for the current reporter")
+    void getMyTickets_shouldReturnTicketsForCurrentUser() {
+      // Arrange
+      User reporter = reporterUser();
+      Ticket ticket = openTicket();
+      TicketViewDTO expected = new TicketViewDTO();
+
+      when(securityUtils.getCurrentUser()).thenReturn(reporter);
+      when(ticketRepository.findByReporterId(reporter.getId())).thenReturn(List.of(ticket));
+      when(ticketMapper.entityToViewDTO(ticket)).thenReturn(expected);
+
+      // Act
+      List<TicketViewDTO> result = ticketService.getMyTickets();
+
+      // Assert
+      assertEquals(1, result.size());
+      assertSame(expected, result.getFirst());
+      verify(ticketRepository).findByReporterId(reporter.getId());
     }
 
-    @Nested
-    @DisplayName("createNewTicket tests")
-    class CreateNewTicketTests {
+    @Test
+    @DisplayName("Should return empty list when reporter has no tickets")
+    void getMyTickets_shouldReturnEmptyList_whenNoTickets() {
+      // Arrange
+      User reporter = reporterUser();
 
-        @Test
-        @DisplayName("createNewTicket should set reporter as user")
-        void createNewTicket_shouldSetReporterAsUser() {
-            // Arrange
-            TicketCreateDTO dto = new TicketCreateDTO();
-            dto.setTitle("Test Ticket");
-            dto.setDescription("This is a test ticket");
-            User reporter = reporterUser();
+      when(securityUtils.getCurrentUser()).thenReturn(reporter);
+      when(ticketRepository.findByReporterId(reporter.getId())).thenReturn(List.of());
 
-            TicketViewDTO viewDTO = new TicketViewDTO();
+      // Act
+      List<TicketViewDTO> result = ticketService.getMyTickets();
 
-            when(securityUtils.getCurrentUserOrNull()).thenReturn(reporter);
-            when(ticketRepository.save(any())).thenAnswer(i -> i.getArgument(0));
-            when(ticketMapper.entityToViewDTO(any())).thenReturn(viewDTO);
+      // Assert
+      assertTrue(result.isEmpty());
+      verify(ticketMapper, never()).entityToViewDTO(any());
+    }
+  }
 
-            // Act
-            TicketViewDTO result = ticketService.createNewTicket(dto);
+  @Nested
+  @DisplayName("getMyAssignedTickets tests")
+  class GetMyAssignedTickets {
 
-            // Assert
-            verify(ticketRepository).save(argThat(ticket ->
-                    reporter.equals(ticket.getReporter()) &&
-                            ticket.getReporterToken() == null &&
-                            "Test Ticket".equals(ticket.getTitle()) &&
-                            "This is a test ticket".equals(ticket.getDescription())
-            ));
-            assertNull(result.getToken());
-        }
+    @Test
+    @DisplayName("Should return tickets for the current investigator")
+    void getMyAssignedTickets_shouldReturnTicketsForCurrentUser() {
+      // Arrange
+      User investigator = investigatorUser();
+      Ticket ticket = openTicket();
+      TicketViewDTO expected = new TicketViewDTO();
 
-        @Test
-        @DisplayName("createNewTicket should set reporter token when user is not authenticated")
-        void createNewTicket_shouldSetReporterToken_whenAnonymous() {
-            // Arrange
-            TicketCreateDTO dto = new TicketCreateDTO();
-            dto.setTitle("Anonymous Ticket");
-            dto.setDescription("Filed anonymously");
+      when(securityUtils.getCurrentUser()).thenReturn(investigator);
+      when(ticketRepository.findByInvestigatorId(investigator.getId())).thenReturn(List.of(ticket));
+      when(ticketMapper.entityToViewDTO(ticket)).thenReturn(expected);
 
-            TicketViewDTO viewDTO = new TicketViewDTO();
+      // Act
+      List<TicketViewDTO> result = ticketService.getMyAssignedTickets();
 
-            when(securityUtils.getCurrentUserOrNull()).thenReturn(null);
-            when(ticketRepository.save(any())).thenAnswer(i -> i.getArgument(0));
-            when(ticketMapper.entityToViewDTO(any())).thenReturn(viewDTO);
-
-            // Act
-            ArgumentCaptor<Ticket> ticketCaptor = ArgumentCaptor.forClass(Ticket.class);
-            TicketViewDTO result = ticketService.createNewTicket(dto);
-
-            // Assert
-            verify(ticketRepository).save(ticketCaptor.capture());
-            Ticket saved = ticketCaptor.getValue();
-            assertNull(saved.getReporter());
-            assertNotNull(saved.getReporterToken());
-            assertEquals(saved.getReporterToken(), result.getToken());
-        }
+      // Assert
+      assertEquals(1, result.size());
+      assertSame(expected, result.getFirst());
+      verify(ticketRepository).findByInvestigatorId(investigator.getId());
     }
 
-    @Nested
-    @DisplayName("getTicketByToken tests")
-    class GetTicketByTokenTests {
+    @Test
+    @DisplayName("Should return empty list when investigator has no tickets")
+    void getMyAssignedTickets_shouldReturnEmptyList_whenNoTickets() {
+      // Arrange
+      User investigator = investigatorUser();
 
-        @Test
-        @DisplayName("Valid token should return ticket")
-        void getTicketByToken_shouldReturnTicket() {
-            // Arrange
-            Ticket ticket = new Ticket();
-            String token = "valid-token";
+      when(securityUtils.getCurrentUser()).thenReturn(investigator);
+      when(ticketRepository.findByInvestigatorId(investigator.getId())).thenReturn(List.of());
 
-            when(ticketRepository.findByReporterToken(token)).thenReturn(Optional.of(ticket));
-            when(ticketMapper.entityToViewDTO(any())).thenReturn(new TicketViewDTO());
+      // Act
+      List<TicketViewDTO> result = ticketService.getMyAssignedTickets();
 
-            // Act + Assert
-            assertDoesNotThrow(() -> ticketService.getTicketByToken(token));
-            verify(ticketMapper).entityToViewDTO(ticket);
-        }
+      // Assert
+      assertTrue(result.isEmpty());
+      verify(ticketMapper, never()).entityToViewDTO(any());
+    }
+  }
 
-        @Test
-        @DisplayName("Invalid token should throw Not found")
-        void getTicketByToken_invalidToken_shouldThrowNotFound() {
-            // Arrange
-            when(ticketRepository.findByReporterToken(any())).thenReturn(Optional.empty());
+  @Nested
+  @DisplayName("getTicketsByStatus tests")
+  class GetTicketsByStatusTests {
 
-            // Act
-            ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
-                    ticketService.getTicketByToken("invalid-token"));
+    @Test
+    @DisplayName("Admin can get tickets by status")
+    void admin_canGetTicketsByStatus() {
+      // Arrange
+      when(securityUtils.getCurrentUser()).thenReturn(adminUser());
+      when(ticketRepository.findByStatus(TicketStatus.OPEN)).thenReturn(List.of());
 
-            // Assert
-            assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
-        }
+      // Act + Assert
+      assertDoesNotThrow(() -> ticketService.getTicketsByStatus(TicketStatus.OPEN));
     }
 
-    @Nested
-    @DisplayName("getTicketById tests")
-    class GetTicketByIdTests {
+    @Test
+    @DisplayName("Non-admin cannot get tickets by status")
+    void nonAdmin_cannotGetTicketsByStatus() {
+      // Arrange
+      when(securityUtils.getCurrentUser()).thenReturn(investigatorUser());
 
-        @Test
-        @DisplayName("getTicketById should return ticket when found and access is granted")
-        void getTicketById_shouldReturnTicket_whenFound() {
-            // Arrange
-            Ticket ticket = openTicket();
-            User admin = adminUser();
-            TicketViewDTO expected = new TicketViewDTO();
+      // Act
+      ResponseStatusException ex =
+          assertThrows(
+              ResponseStatusException.class,
+              () -> ticketService.getTicketsByStatus(TicketStatus.OPEN));
 
-            when(securityUtils.getCurrentUser()).thenReturn(admin);
-            when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
-            when(ticketMapper.entityToViewDTO(ticket)).thenReturn(expected);
+      // Assert
+      assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
+    }
+  }
 
-            // Act
-            TicketViewDTO result = ticketService.getTicketById(1L);
+  @Nested
+  @DisplayName("getTicketsByStatusAndInvestigator tests")
+  class GetTicketsByStatusAndInvestigatorTests {
 
-            // Assert
-            assertSame(expected, result);
-            verify(ticketMapper).entityToViewDTO(ticket);
-        }
+    @Test
+    @DisplayName("Admin can filter any investigator's tickets")
+    void admin_canFilterAnyInvestigator() {
+      // Arrange
+      User admin = adminUser();
 
-        @Test
-        @DisplayName("getTicketById should throw Not Found when ticket does not exist")
-        void getTicketById_shouldThrow_whenNotFound() {
-            // Arrange
-            when(ticketRepository.findById(1L)).thenReturn(Optional.empty());
+      when(securityUtils.getCurrentUser()).thenReturn(admin);
+      when(ticketRepository.findByStatusAndInvestigatorId(any(), any())).thenReturn(List.of());
 
-            // Act
-            ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
-                    ticketService.getTicketById(1L));
-
-            // Assert
-            assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
-        }
+      // Act + Assert
+      assertDoesNotThrow(
+          () -> ticketService.getTicketsByStatusAndInvestigator(TicketStatus.OPEN, 200L));
     }
 
-    @Nested
-    @DisplayName("getMyTickets tests")
-    class GetMyTicketsTests {
+    @Test
+    @DisplayName("Investigator can filter their own tickets")
+    void investigator_canFilterOwnTickets() {
+      // Arrange
+      User investigator = investigatorUser();
 
-        @Test
-        @DisplayName("Should return tickets for the current reporter")
-        void getMyTickets_shouldReturnTicketsForCurrentUser() {
-            // Arrange
-            User reporter = reporterUser();
-            Ticket ticket = openTicket();
-            TicketViewDTO expected = new TicketViewDTO();
+      when(securityUtils.getCurrentUser()).thenReturn(investigator);
+      when(ticketRepository.findByStatusAndInvestigatorId(any(), any())).thenReturn(List.of());
 
-            when(securityUtils.getCurrentUser()).thenReturn(reporter);
-            when(ticketRepository.findByReporterId(reporter.getId())).thenReturn(List.of(ticket));
-            when(ticketMapper.entityToViewDTO(ticket)).thenReturn(expected);
-
-            // Act
-            List<TicketViewDTO> result = ticketService.getMyTickets();
-
-            // Assert
-            assertEquals(1, result.size());
-            assertSame(expected, result.getFirst());
-            verify(ticketRepository).findByReporterId(reporter.getId());
-        }
-
-        @Test
-        @DisplayName("Should return empty list when reporter has no tickets")
-        void getMyTickets_shouldReturnEmptyList_whenNoTickets() {
-            // Arrange
-            User reporter = reporterUser();
-
-            when(securityUtils.getCurrentUser()).thenReturn(reporter);
-            when(ticketRepository.findByReporterId(reporter.getId())).thenReturn(List.of());
-
-            // Act
-            List<TicketViewDTO> result = ticketService.getMyTickets();
-
-            // Assert
-            assertTrue(result.isEmpty());
-            verify(ticketMapper, never()).entityToViewDTO(any());
-        }
+      // Act + Assert
+      assertDoesNotThrow(
+          () -> ticketService.getTicketsByStatusAndInvestigator(TicketStatus.IN_PROGRESS, 200L));
     }
 
-    @Nested
-    @DisplayName("getMyAssignedTickets tests")
-    class GetMyAssignedTickets {
+    @Test
+    @DisplayName("Investigator cannot filter other investigator's tickets")
+    void investigator_cannotFilterOthersTickets() {
+      // Arrange
+      User investigator = investigatorUser();
 
-        @Test
-        @DisplayName("Should return tickets for the current investigator")
-        void getMyAssignedTickets_shouldReturnTicketsForCurrentUser() {
-            // Arrange
-            User investigator = investigatorUser();
-            Ticket ticket = openTicket();
-            TicketViewDTO expected = new TicketViewDTO();
+      when(securityUtils.getCurrentUser()).thenReturn(investigator);
 
-            when(securityUtils.getCurrentUser()).thenReturn(investigator);
-            when(ticketRepository.findByInvestigatorId(investigator.getId())).thenReturn(List.of(ticket));
-            when(ticketMapper.entityToViewDTO(ticket)).thenReturn(expected);
+      // Act
+      ResponseStatusException ex =
+          assertThrows(
+              ResponseStatusException.class,
+              () ->
+                  ticketService.getTicketsByStatusAndInvestigator(TicketStatus.IN_PROGRESS, 201L));
 
-            // Act
-            List<TicketViewDTO> result = ticketService.getMyAssignedTickets();
-
-            // Assert
-            assertEquals(1, result.size());
-            assertSame(expected, result.getFirst());
-            verify(ticketRepository).findByInvestigatorId(investigator.getId());
-        }
-
-        @Test
-        @DisplayName("Should return empty list when investigator has no tickets")
-        void getMyAssignedTickets_shouldReturnEmptyList_whenNoTickets() {
-            // Arrange
-            User investigator = investigatorUser();
-
-            when(securityUtils.getCurrentUser()).thenReturn(investigator);
-            when(ticketRepository.findByInvestigatorId(investigator.getId())).thenReturn(List.of());
-
-            // Act
-            List<TicketViewDTO> result = ticketService.getMyAssignedTickets();
-
-            // Assert
-            assertTrue(result.isEmpty());
-            verify(ticketMapper, never()).entityToViewDTO(any());
-        }
+      // Assert
+      assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
     }
 
-    @Nested
-    @DisplayName("getTicketsByStatus tests")
-    class GetTicketsByStatusTests {
+    @Test
+    @DisplayName("Reporter should be forbidden from filtering by investigator ID")
+    void reporter_cannotFilterTickets_byInvestigatorId() {
+      // Arrange
+      User reporter = reporterUser();
 
-        @Test
-        @DisplayName("Admin can get tickets by status")
-        void admin_canGetTicketsByStatus() {
-            // Arrange
-            when(securityUtils.getCurrentUser()).thenReturn(adminUser());
-            when(ticketRepository.findByStatus(TicketStatus.OPEN)).thenReturn(List.of());
+      when(securityUtils.getCurrentUser()).thenReturn(reporter);
 
-            // Act + Assert
-            assertDoesNotThrow(() -> ticketService.getTicketsByStatus(TicketStatus.OPEN));
-        }
+      // Act
+      ResponseStatusException ex =
+          assertThrows(
+              ResponseStatusException.class,
+              () ->
+                  ticketService.getTicketsByStatusAndInvestigator(TicketStatus.IN_PROGRESS, 200L));
 
-        @Test
-        @DisplayName("Non-admin cannot get tickets by status")
-        void nonAdmin_cannotGetTicketsByStatus() {
-            // Arrange
-            when(securityUtils.getCurrentUser()).thenReturn(investigatorUser());
+      // Assert
+      assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
+    }
+  }
 
-            // Act
-            ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
-                    ticketService.getTicketsByStatus(TicketStatus.OPEN));
+  @Nested
+  @DisplayName("checkAccess tests")
+  class CheckAccessTests {
 
-            // Assert
-            assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
-        }
+    @Test
+    @DisplayName("Admin should always have access")
+    void admin_shouldHaveAccess() {
+      // Arrange
+      Ticket ticket = openTicket();
+      User admin = adminUser();
+
+      when(securityUtils.getCurrentUser()).thenReturn(admin);
+      when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+      when(ticketMapper.entityToViewDTO(any())).thenReturn(new TicketViewDTO());
+
+      // Act + Assert
+      assertDoesNotThrow(() -> ticketService.getTicketById(1L));
     }
 
-    @Nested
-    @DisplayName("getTicketsByStatusAndInvestigator tests")
-    class GetTicketsByStatusAndInvestigatorTests {
+    @Test
+    @DisplayName("Assigned investigator should have access")
+    void investigator_shouldHaveAccessIfAssigned() {
+      // Arrange
+      Ticket ticket = openTicket();
+      User investigator = investigatorUser();
+      ticket.setInvestigator(investigator);
 
-        @Test
-        @DisplayName("Admin can filter any investigator's tickets")
-        void admin_canFilterAnyInvestigator() {
-            // Arrange
-            User admin = adminUser();
+      when(securityUtils.getCurrentUser()).thenReturn(investigator);
+      when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+      when(ticketMapper.entityToViewDTO(any())).thenReturn(new TicketViewDTO());
 
-            when(securityUtils.getCurrentUser()).thenReturn(admin);
-            when(ticketRepository.findByStatusAndInvestigatorId(any(), any())).thenReturn(List.of());
-
-            // Act + Assert
-            assertDoesNotThrow(() -> ticketService.getTicketsByStatusAndInvestigator(TicketStatus.OPEN, 200L));
-        }
-
-        @Test
-        @DisplayName("Investigator can filter their own tickets")
-        void investigator_canFilterOwnTickets() {
-            // Arrange
-            User investigator = investigatorUser();
-
-            when(securityUtils.getCurrentUser()).thenReturn(investigator);
-            when(ticketRepository.findByStatusAndInvestigatorId(any(), any())).thenReturn(List.of());
-
-            // Act + Assert
-            assertDoesNotThrow(() -> ticketService.getTicketsByStatusAndInvestigator(TicketStatus.IN_PROGRESS, 200L));
-        }
-
-        @Test
-        @DisplayName("Investigator cannot filter other investigator's tickets")
-        void investigator_cannotFilterOthersTickets() {
-            // Arrange
-            User investigator = investigatorUser();
-
-            when(securityUtils.getCurrentUser()).thenReturn(investigator);
-
-            // Act
-            ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
-                    ticketService.getTicketsByStatusAndInvestigator(TicketStatus.IN_PROGRESS, 201L));
-
-            // Assert
-            assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
-        }
-
-        @Test
-        @DisplayName("Reporter should be forbidden from filtering by investigator ID")
-        void reporter_cannotFilterTickets_byInvestigatorId() {
-            // Arrange
-            User reporter = reporterUser();
-
-            when(securityUtils.getCurrentUser()).thenReturn(reporter);
-
-            // Act
-            ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
-                    ticketService.getTicketsByStatusAndInvestigator(TicketStatus.IN_PROGRESS, 200L));
-
-            // Assert
-            assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
-        }
+      // Act + Assert
+      assertDoesNotThrow(() -> ticketService.getTicketById(1L));
     }
 
-    @Nested
-    @DisplayName("checkAccess tests")
-    class CheckAccessTests {
+    @Test
+    @DisplayName("Unassigned investigator should not have access")
+    void unassignedInvestigator_shouldThrowForbidden() {
+      // Arrange
+      Ticket ticket = openTicket();
+      User investigator = investigatorUser();
 
-        @Test
-        @DisplayName("Admin should always have access")
-        void admin_shouldHaveAccess() {
-            // Arrange
-            Ticket ticket = openTicket();
-            User admin = adminUser();
+      User otherInvestigator = new User();
+      otherInvestigator.setId(201L);
+      otherInvestigator.setRole(Role.INVESTIGATOR);
+      ticket.setInvestigator(otherInvestigator);
 
-            when(securityUtils.getCurrentUser()).thenReturn(admin);
-            when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
-            when(ticketMapper.entityToViewDTO(any())).thenReturn(new TicketViewDTO());
+      when(securityUtils.getCurrentUser()).thenReturn(investigator);
+      when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
 
-            // Act + Assert
-            assertDoesNotThrow(() -> ticketService.getTicketById(1L));
-        }
+      // Act
+      ResponseStatusException ex =
+          assertThrows(ResponseStatusException.class, () -> ticketService.getTicketById(1L));
 
-        @Test
-        @DisplayName("Assigned investigator should have access")
-        void investigator_shouldHaveAccessIfAssigned() {
-            // Arrange
-            Ticket ticket = openTicket();
-            User investigator = investigatorUser();
-            ticket.setInvestigator(investigator);
-
-            when(securityUtils.getCurrentUser()).thenReturn(investigator);
-            when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
-            when(ticketMapper.entityToViewDTO(any())).thenReturn(new TicketViewDTO());
-
-            // Act + Assert
-            assertDoesNotThrow(() -> ticketService.getTicketById(1L));
-        }
-
-        @Test
-        @DisplayName("Unassigned investigator should not have access")
-        void unassignedInvestigator_shouldThrowForbidden() {
-            // Arrange
-            Ticket ticket = openTicket();
-            User investigator = investigatorUser();
-
-            User otherInvestigator = new User();
-            otherInvestigator.setId(201L);
-            otherInvestigator.setRole(Role.INVESTIGATOR);
-            ticket.setInvestigator(otherInvestigator);
-
-            when(securityUtils.getCurrentUser()).thenReturn(investigator);
-            when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
-
-            // Act
-            ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
-                    ticketService.getTicketById(1L));
-
-            // Assert
-            assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
-        }
-
-        @Test
-        @DisplayName("Reporter who owns the ticket should have access")
-        void owningReporter_shouldHaveAccess() {
-            // Arrange
-            Ticket ticket = openTicket();
-            User reporter = reporterUser();
-            ticket.setReporter(reporter);
-
-            when(securityUtils.getCurrentUser()).thenReturn(reporter);
-            when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
-            when(ticketMapper.entityToViewDTO(any())).thenReturn(new TicketViewDTO());
-
-            // Act + Assert
-            assertDoesNotThrow(() -> ticketService.getTicketById(1L));
-        }
-
-        @Test
-        @DisplayName("Reporter who does not own the ticket should not have access")
-        void nonOwningReporter_shouldThrowForbidden() {
-            // Arrange
-            Ticket ticket = openTicket();
-            User reporter = reporterUser();
-
-            User otherReporter = new User();
-            otherReporter.setId(301L);
-            otherReporter.setRole(Role.REPORTER);
-            ticket.setReporter(otherReporter);
-
-            when(securityUtils.getCurrentUser()).thenReturn(reporter);
-            when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
-
-            // Act
-            ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
-                    ticketService.getTicketById(1L));
-
-            // Assert
-            assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
-        }
-
-        @Test
-        @DisplayName("Investigator with null investigator set on ticket should be forbidden")
-        void investigator_nullInvestigatorOnTicket_shouldThrowForbidden() {
-            Ticket ticket = openTicket();
-            User investigator = investigatorUser();
-            ticket.setInvestigator(null);
-
-            when(securityUtils.getCurrentUser()).thenReturn(investigator);
-            when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
-
-            ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
-                    ticketService.getTicketById(1L));
-
-            assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
-        }
+      // Assert
+      assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
     }
 
-    @Nested
-    @DisplayName("requireCurrentUser tests")
-    class RequireCurrentUserTests {
+    @Test
+    @DisplayName("Reporter who owns the ticket should have access")
+    void owningReporter_shouldHaveAccess() {
+      // Arrange
+      Ticket ticket = openTicket();
+      User reporter = reporterUser();
+      ticket.setReporter(reporter);
 
-        @Test
-        @DisplayName("No authenticated user in security context should throw Unauthorized")
-        void noAuthenticatedUser_shouldThrowUnauthorized() {
-            // Arrange
-            when(securityUtils.getCurrentUser())
-                    .thenThrow(new RuntimeException("No authenticated user in security context"));
+      when(securityUtils.getCurrentUser()).thenReturn(reporter);
+      when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+      when(ticketMapper.entityToViewDTO(any())).thenReturn(new TicketViewDTO());
 
-            // Act
-            ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
-                    ticketService.getMyTickets());
-
-            // Assert
-            assertEquals(HttpStatus.UNAUTHORIZED, ex.getStatusCode());
-            verify(ticketRepository, never()).findByReporterId(any());
-        }
-
-        @Test
-        @DisplayName("Authenticated user not found in database should throw Unauthorized")
-        void userNotFoundInDatabase_shouldThrowUnauthorized() {
-            // Arrange
-            when(securityUtils.getCurrentUser())
-                    .thenThrow(new RuntimeException("Authenticated user not found in database"));
-
-            // Act
-            ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
-                    ticketService.getMyTickets());
-
-            // Assert
-            assertEquals(HttpStatus.UNAUTHORIZED, ex.getStatusCode());
-            verify(ticketRepository, never()).findByReporterId(any());
-        }
+      // Act + Assert
+      assertDoesNotThrow(() -> ticketService.getTicketById(1L));
     }
 
-    @Nested
-    @DisplayName("updateTicketStatus tests")
-    class UpdateTicketStatusTests {
+    @Test
+    @DisplayName("Reporter who does not own the ticket should not have access")
+    void nonOwningReporter_shouldThrowForbidden() {
+      // Arrange
+      Ticket ticket = openTicket();
+      User reporter = reporterUser();
 
-        @Test
-        @DisplayName("Valid transition should succeed")
-        void validTransition_shouldSucceed() {
-            // Arrange
-            Ticket ticket = openTicket();
-            User investigator = investigatorUser();
-            ticket.setInvestigator(investigator);
+      User otherReporter = new User();
+      otherReporter.setId(301L);
+      otherReporter.setRole(Role.REPORTER);
+      ticket.setReporter(otherReporter);
 
-            when(securityUtils.getCurrentUser()).thenReturn(investigator);
-            when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
-            when(ticketRepository.save(any())).thenReturn(ticket);
-            when(ticketMapper.entityToViewDTO(any())).thenReturn(new TicketViewDTO());
+      when(securityUtils.getCurrentUser()).thenReturn(reporter);
+      when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
 
-            // Act
-            ticketService.updateTicketStatus(1L, TicketStatus.IN_PROGRESS);
+      // Act
+      ResponseStatusException ex =
+          assertThrows(ResponseStatusException.class, () -> ticketService.getTicketById(1L));
 
-            // Assert
-            assertEquals(TicketStatus.IN_PROGRESS, ticket.getStatus());
-            verify(ticketRepository).save(ticket);
-        }
-
-        @Test
-        @DisplayName("Invalid transition should throw Bad Request")
-        void invalidTransition_shouldThrowBadRequest() {
-            // Arrange
-            Ticket ticket = openTicket();
-            User admin = adminUser();
-
-            when(securityUtils.getCurrentUser()).thenReturn(admin);
-            when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
-
-            // Act
-            ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
-                    ticketService.updateTicketStatus(1L, TicketStatus.CLOSED));
-
-            // Assert
-            assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
-            verify(ticketRepository, never()).save(any());
-        }
-
-        @Test
-        @DisplayName("Reporter should not be able to update status")
-        void reporterStatusUpdate_shouldThrowForbidden() {
-            // Arrange
-            Ticket ticket = openTicket();
-            User reporter = reporterUser();
-
-            when(securityUtils.getCurrentUser()).thenReturn(reporter);
-            when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
-
-            // Act
-            ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
-                    ticketService.updateTicketStatus(1L, TicketStatus.CLOSED));
-
-            // Assert
-            assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
-            verify(ticketRepository, never()).save(any());
-        }
-
-        @Test
-        @DisplayName("Same status should return without changes")
-        void sameStatus_shouldReturn() {
-            //Arrange
-            Ticket ticket = openTicket();
-            User admin = adminUser();
-
-            when(securityUtils.getCurrentUser()).thenReturn(admin);
-            when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
-            when(ticketMapper.entityToViewDTO(any())).thenReturn(new TicketViewDTO());
-
-            // Act
-            TicketViewDTO result = ticketService.updateTicketStatus(1L, TicketStatus.OPEN);
-
-            // Assert
-            assertNotNull(result);
-            verify(ticketRepository, never()).save(any());
-        }
-
-        @Test
-        @DisplayName("Status change without investigator should throw Bad Request")
-        void statusChange_withoutInvestigator_shouldThrowBadRequest() {
-            // Arrange
-            Ticket ticket = openTicket();
-            User admin = adminUser();
-            ticket.setInvestigator(null);
-
-            when(securityUtils.getCurrentUser()).thenReturn(admin);
-            when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
-
-            // Act
-            ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
-                    ticketService.updateTicketStatus(1L, TicketStatus.IN_PROGRESS));
-
-            // Assert
-            assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
-            verify(ticketRepository, never()).save(any());
-        }
-
-        @Test
-        @DisplayName("Investigator not assigned should be forbidden")
-        void investigator_notAssigned_shouldBeForbidden() {
-            // Arrange
-            Ticket ticket = openTicket();
-            User investigator = investigatorUser();
-
-            User otherInvestigator = new User();
-            otherInvestigator.setId(201L);
-            otherInvestigator.setRole(Role.INVESTIGATOR);
-            ticket.setInvestigator(otherInvestigator);
-
-            when(securityUtils.getCurrentUser()).thenReturn(investigator);
-            when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
-
-            // Act
-            ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
-                    ticketService.updateTicketStatus(1L, TicketStatus.IN_PROGRESS));
-
-            // Assert
-            assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
-            verify(ticketRepository, never()).save(any());
-        }
+      // Assert
+      assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
     }
 
-    @Nested
-    @DisplayName("assignInvestigator tests")
-    class AssignInvestigatorTests {
+    @Test
+    @DisplayName("Investigator with null investigator set on ticket should be forbidden")
+    void investigator_nullInvestigatorOnTicket_shouldThrowForbidden() {
+      Ticket ticket = openTicket();
+      User investigator = investigatorUser();
+      ticket.setInvestigator(null);
 
-        @Test
-        @DisplayName("Assigning investigator should succeed")
-        void assignInvestigator_shouldSucceed() {
-            // Arrange
-            Ticket ticket = openTicket();
-            User admin = adminUser();
-            User investigator = investigatorUser();
+      when(securityUtils.getCurrentUser()).thenReturn(investigator);
+      when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
 
-            when(securityUtils.getCurrentUser()).thenReturn(admin);
-            when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
-            when(userRepository.findById(investigator.getId())).thenReturn(Optional.of(investigator));
-            when(ticketRepository.save(any())).thenReturn(ticket);
-            when(ticketMapper.entityToViewDTO(any())).thenReturn(new TicketViewDTO());
+      ResponseStatusException ex =
+          assertThrows(ResponseStatusException.class, () -> ticketService.getTicketById(1L));
 
-            // Act
-            ticketService.assignInvestigator(1L, investigator.getId());
+      assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
+    }
+  }
 
-            // Assert
-            assertEquals(investigator, ticket.getInvestigator());
-            assertEquals(TicketStatus.IN_PROGRESS, ticket.getStatus());
-            verify(ticketRepository).save(ticket);
-        }
+  @Nested
+  @DisplayName("requireCurrentUser tests")
+  class RequireCurrentUserTests {
 
-        @Test
-        @DisplayName("Assigning investigator should throw Bad Request when investigatorId is null")
-        void assignInvestigator_shouldThrowBadRequest_whenInvestigatorIsNull() {
-            // Arrange + Act
-            ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
-                    ticketService.assignInvestigator(1L, null));
+    @Test
+    @DisplayName("No authenticated user in security context should throw Unauthorized")
+    void noAuthenticatedUser_shouldThrowUnauthorized() {
+      // Arrange
+      when(securityUtils.getCurrentUser())
+          .thenThrow(new RuntimeException("No authenticated user in security context"));
 
-            // Assert
-            assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
-            verify(ticketRepository, never()).save(any());
-        }
+      // Act
+      ResponseStatusException ex =
+          assertThrows(ResponseStatusException.class, () -> ticketService.getMyTickets());
 
-        @Test
-        @DisplayName("Assigning investigator should throw Conflict when ticket is already assigned")
-        void assignInvestigator_shouldThrowConflict_whenTicketAlreadyAssigned() {
-            // Arrange
-            Ticket ticket = openTicket();
-            User admin = adminUser();
-            User investigator = investigatorUser();
-            ticket.setInvestigator(investigator);
-
-            when(securityUtils.getCurrentUser()).thenReturn(admin);
-            when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
-
-            // Act
-            ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
-                    ticketService.assignInvestigator(1L, investigator.getId()));
-
-            // Assert
-            assertEquals(HttpStatus.CONFLICT, ex.getStatusCode());
-            verify(ticketRepository, never()).save(any());
-        }
-
-        @Test
-        @DisplayName("Assigning investigator should throw Bad Request when ticket is not open")
-        void assignInvestigator_shouldThrowBadRequest_whenIsNotOpen() {
-            // Arrange
-            Ticket ticket = openTicket();
-            User admin = adminUser();
-            User investigator = investigatorUser();
-            ticket.setStatus(TicketStatus.CLOSED);
-
-            when(securityUtils.getCurrentUser()).thenReturn(admin);
-            when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
-
-            // Act
-            ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
-                    ticketService.assignInvestigator(1L, investigator.getId()));
-
-            // Assert
-            assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
-            verify(ticketRepository, never()).save(any());
-        }
-
-        @Test
-        @DisplayName("Assigning investigator should throw Bad Request when user is not investigator")
-        void assignInvestigator_shouldThrowBadRequest_whenUserIsNotInvestigator() {
-            // Arrange
-            Ticket ticket = openTicket();
-            User admin = adminUser();
-            User reporter = reporterUser();
-
-            when(securityUtils.getCurrentUser()).thenReturn(admin);
-            when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
-            when(userRepository.findById(reporter.getId())).thenReturn(Optional.of(reporter));
-
-            // Act
-            ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
-                    ticketService.assignInvestigator(1L, reporter.getId()));
-
-            // Assert
-            assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
-            verify(ticketRepository, never()).save(any());
-        }
-
+      // Assert
+      assertEquals(HttpStatus.UNAUTHORIZED, ex.getStatusCode());
+      verify(ticketRepository, never()).findByReporterId(any());
     }
 
-    @Nested
-    @DisplayName("unassignInvestigator tests")
-    class UnassignInvestigatorTests {
+    @Test
+    @DisplayName("Authenticated user not found in database should throw Unauthorized")
+    void userNotFoundInDatabase_shouldThrowUnauthorized() {
+      // Arrange
+      when(securityUtils.getCurrentUser())
+          .thenThrow(new RuntimeException("Authenticated user not found in database"));
 
-        @Test
-        @DisplayName("Unassigning investigator should succeed")
-        void unassignInvestigator_shouldSucceed() {
-            // Arrange
-            Ticket ticket = openTicket();
-            User admin = adminUser();
-            User investigator = investigatorUser();
-            investigator.setUsername("inv-user");
-            ticket.setInvestigator(investigator);
-            ticket.setStatus(TicketStatus.IN_PROGRESS);
+      // Act
+      ResponseStatusException ex =
+          assertThrows(ResponseStatusException.class, () -> ticketService.getMyTickets());
 
-            when(securityUtils.getCurrentUser()).thenReturn(admin);
-            when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
-            when(ticketRepository.save(any())).thenReturn(ticket);
-            when(ticketMapper.entityToViewDTO(any())).thenReturn(new TicketViewDTO());
-
-            // Act
-            ticketService.unassignInvestigator(1L);
-
-            // Assert
-            assertNull(ticket.getInvestigator());
-            assertEquals(TicketStatus.OPEN, ticket.getStatus());
-            verify(ticketRepository).save(ticket);
-
-            verify(auditService).log(
-                    eq(AuditAction.UNASSIGNED),
-                    eq("investigator"),
-                    eq("inv-user"),
-                    isNull(),
-                    any(),
-                    eq(admin)
-            );
-        }
-
-        @Test
-        @DisplayName("Unassigning investigator should throw Bad Request when no investigator is assigned")
-        void unassignInvestigator_shouldThrowBadRequest_whenNoInvestigatorAssigned() {
-            // Arrange
-            Ticket ticket = openTicket();
-            User admin = adminUser();
-            ticket.setInvestigator(null);
-
-            when(securityUtils.getCurrentUser()).thenReturn(admin);
-            when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
-
-            // Act
-            ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
-                    ticketService.unassignInvestigator(1L));
-
-            // Assert
-            assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
-            verify(ticketRepository, never()).save(any());
-        }
-
-        @Test
-        @DisplayName("Unassigning investigator should throw Bad Request when ticket is not in progress")
-        void unassignInvestigator_shouldThrowBadRequest_whenTicketNotInProgress() {
-            // Arrange
-            Ticket ticket = openTicket();
-            User admin = adminUser();
-            User investigator = investigatorUser();
-            ticket.setInvestigator(investigator);
-            ticket.setStatus(TicketStatus.OPEN);
-
-            when(securityUtils.getCurrentUser()).thenReturn(admin);
-            when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
-
-            // Act
-            ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
-                    ticketService.unassignInvestigator(1L));
-
-            // Assert
-            assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
-            verify(ticketRepository, never()).save(any());
-        }
+      // Assert
+      assertEquals(HttpStatus.UNAUTHORIZED, ex.getStatusCode());
+      verify(ticketRepository, never()).findByReporterId(any());
     }
+  }
+
+  @Nested
+  @DisplayName("updateTicketStatus tests")
+  class UpdateTicketStatusTests {
+
+    @Test
+    @DisplayName("Valid transition should succeed")
+    void validTransition_shouldSucceed() {
+      // Arrange
+      Ticket ticket = openTicket();
+      User investigator = investigatorUser();
+      ticket.setInvestigator(investigator);
+
+      when(securityUtils.getCurrentUser()).thenReturn(investigator);
+      when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+      when(ticketRepository.save(any())).thenReturn(ticket);
+      when(ticketMapper.entityToViewDTO(any())).thenReturn(new TicketViewDTO());
+
+      // Act
+      ticketService.updateTicketStatus(1L, TicketStatus.IN_PROGRESS);
+
+      // Assert
+      assertEquals(TicketStatus.IN_PROGRESS, ticket.getStatus());
+      verify(ticketRepository).save(ticket);
+    }
+
+    @Test
+    @DisplayName("Invalid transition should throw Bad Request")
+    void invalidTransition_shouldThrowBadRequest() {
+      // Arrange
+      Ticket ticket = openTicket();
+      User admin = adminUser();
+
+      when(securityUtils.getCurrentUser()).thenReturn(admin);
+      when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+
+      // Act
+      ResponseStatusException ex =
+          assertThrows(
+              ResponseStatusException.class,
+              () -> ticketService.updateTicketStatus(1L, TicketStatus.CLOSED));
+
+      // Assert
+      assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
+      verify(ticketRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Reporter should not be able to update status")
+    void reporterStatusUpdate_shouldThrowForbidden() {
+      // Arrange
+      Ticket ticket = openTicket();
+      User reporter = reporterUser();
+
+      when(securityUtils.getCurrentUser()).thenReturn(reporter);
+      when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+
+      // Act
+      ResponseStatusException ex =
+          assertThrows(
+              ResponseStatusException.class,
+              () -> ticketService.updateTicketStatus(1L, TicketStatus.CLOSED));
+
+      // Assert
+      assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
+      verify(ticketRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Same status should return without changes")
+    void sameStatus_shouldReturn() {
+      // Arrange
+      Ticket ticket = openTicket();
+      User admin = adminUser();
+
+      when(securityUtils.getCurrentUser()).thenReturn(admin);
+      when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+      when(ticketMapper.entityToViewDTO(any())).thenReturn(new TicketViewDTO());
+
+      // Act
+      TicketViewDTO result = ticketService.updateTicketStatus(1L, TicketStatus.OPEN);
+
+      // Assert
+      assertNotNull(result);
+      verify(ticketRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Status change without investigator should throw Bad Request")
+    void statusChange_withoutInvestigator_shouldThrowBadRequest() {
+      // Arrange
+      Ticket ticket = openTicket();
+      User admin = adminUser();
+      ticket.setInvestigator(null);
+
+      when(securityUtils.getCurrentUser()).thenReturn(admin);
+      when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+
+      // Act
+      ResponseStatusException ex =
+          assertThrows(
+              ResponseStatusException.class,
+              () -> ticketService.updateTicketStatus(1L, TicketStatus.IN_PROGRESS));
+
+      // Assert
+      assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
+      verify(ticketRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Investigator not assigned should be forbidden")
+    void investigator_notAssigned_shouldBeForbidden() {
+      // Arrange
+      Ticket ticket = openTicket();
+      User investigator = investigatorUser();
+
+      User otherInvestigator = new User();
+      otherInvestigator.setId(201L);
+      otherInvestigator.setRole(Role.INVESTIGATOR);
+      ticket.setInvestigator(otherInvestigator);
+
+      when(securityUtils.getCurrentUser()).thenReturn(investigator);
+      when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+
+      // Act
+      ResponseStatusException ex =
+          assertThrows(
+              ResponseStatusException.class,
+              () -> ticketService.updateTicketStatus(1L, TicketStatus.IN_PROGRESS));
+
+      // Assert
+      assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
+      verify(ticketRepository, never()).save(any());
+    }
+  }
+
+  @Nested
+  @DisplayName("assignInvestigator tests")
+  class AssignInvestigatorTests {
+
+    @Test
+    @DisplayName("Assigning investigator should succeed")
+    void assignInvestigator_shouldSucceed() {
+      // Arrange
+      Ticket ticket = openTicket();
+      User admin = adminUser();
+      User investigator = investigatorUser();
+
+      when(securityUtils.getCurrentUser()).thenReturn(admin);
+      when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+      when(userRepository.findById(investigator.getId())).thenReturn(Optional.of(investigator));
+      when(ticketRepository.save(any())).thenReturn(ticket);
+      when(ticketMapper.entityToViewDTO(any())).thenReturn(new TicketViewDTO());
+
+      // Act
+      ticketService.assignInvestigator(1L, investigator.getId());
+
+      // Assert
+      assertEquals(investigator, ticket.getInvestigator());
+      assertEquals(TicketStatus.IN_PROGRESS, ticket.getStatus());
+      verify(ticketRepository).save(ticket);
+    }
+
+    @Test
+    @DisplayName("Assigning investigator should throw Bad Request when investigatorId is null")
+    void assignInvestigator_shouldThrowBadRequest_whenInvestigatorIsNull() {
+      // Arrange + Act
+      ResponseStatusException ex =
+          assertThrows(
+              ResponseStatusException.class, () -> ticketService.assignInvestigator(1L, null));
+
+      // Assert
+      assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
+      verify(ticketRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Assigning investigator should throw Conflict when ticket is already assigned")
+    void assignInvestigator_shouldThrowConflict_whenTicketAlreadyAssigned() {
+      // Arrange
+      Ticket ticket = openTicket();
+      User admin = adminUser();
+      User investigator = investigatorUser();
+      ticket.setInvestigator(investigator);
+
+      when(securityUtils.getCurrentUser()).thenReturn(admin);
+      when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+
+      // Act
+      ResponseStatusException ex =
+          assertThrows(
+              ResponseStatusException.class,
+              () -> ticketService.assignInvestigator(1L, investigator.getId()));
+
+      // Assert
+      assertEquals(HttpStatus.CONFLICT, ex.getStatusCode());
+      verify(ticketRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Assigning investigator should throw Bad Request when ticket is not open")
+    void assignInvestigator_shouldThrowBadRequest_whenIsNotOpen() {
+      // Arrange
+      Ticket ticket = openTicket();
+      User admin = adminUser();
+      User investigator = investigatorUser();
+      ticket.setStatus(TicketStatus.CLOSED);
+
+      when(securityUtils.getCurrentUser()).thenReturn(admin);
+      when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+
+      // Act
+      ResponseStatusException ex =
+          assertThrows(
+              ResponseStatusException.class,
+              () -> ticketService.assignInvestigator(1L, investigator.getId()));
+
+      // Assert
+      assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
+      verify(ticketRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Assigning investigator should throw Bad Request when user is not investigator")
+    void assignInvestigator_shouldThrowBadRequest_whenUserIsNotInvestigator() {
+      // Arrange
+      Ticket ticket = openTicket();
+      User admin = adminUser();
+      User reporter = reporterUser();
+
+      when(securityUtils.getCurrentUser()).thenReturn(admin);
+      when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+      when(userRepository.findById(reporter.getId())).thenReturn(Optional.of(reporter));
+
+      // Act
+      ResponseStatusException ex =
+          assertThrows(
+              ResponseStatusException.class,
+              () -> ticketService.assignInvestigator(1L, reporter.getId()));
+
+      // Assert
+      assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
+      verify(ticketRepository, never()).save(any());
+    }
+  }
+
+  @Nested
+  @DisplayName("unassignInvestigator tests")
+  class UnassignInvestigatorTests {
+
+    @Test
+    @DisplayName("Unassigning investigator should succeed")
+    void unassignInvestigator_shouldSucceed() {
+      // Arrange
+      Ticket ticket = openTicket();
+      User admin = adminUser();
+      User investigator = investigatorUser();
+      investigator.setUsername("inv-user");
+      ticket.setInvestigator(investigator);
+      ticket.setStatus(TicketStatus.IN_PROGRESS);
+
+      when(securityUtils.getCurrentUser()).thenReturn(admin);
+      when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+      when(ticketRepository.save(any())).thenReturn(ticket);
+      when(ticketMapper.entityToViewDTO(any())).thenReturn(new TicketViewDTO());
+
+      // Act
+      ticketService.unassignInvestigator(1L);
+
+      // Assert
+      assertNull(ticket.getInvestigator());
+      assertEquals(TicketStatus.OPEN, ticket.getStatus());
+      verify(ticketRepository).save(ticket);
+
+      verify(auditService)
+          .log(
+              eq(AuditAction.UNASSIGNED),
+              eq("investigator"),
+              eq("inv-user"),
+              isNull(),
+              any(),
+              eq(admin));
+    }
+
+    @Test
+    @DisplayName(
+        "Unassigning investigator should throw Bad Request when no investigator is assigned")
+    void unassignInvestigator_shouldThrowBadRequest_whenNoInvestigatorAssigned() {
+      // Arrange
+      Ticket ticket = openTicket();
+      User admin = adminUser();
+      ticket.setInvestigator(null);
+
+      when(securityUtils.getCurrentUser()).thenReturn(admin);
+      when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+
+      // Act
+      ResponseStatusException ex =
+          assertThrows(ResponseStatusException.class, () -> ticketService.unassignInvestigator(1L));
+
+      // Assert
+      assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
+      verify(ticketRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Unassigning investigator should throw Bad Request when ticket is not in progress")
+    void unassignInvestigator_shouldThrowBadRequest_whenTicketNotInProgress() {
+      // Arrange
+      Ticket ticket = openTicket();
+      User admin = adminUser();
+      User investigator = investigatorUser();
+      ticket.setInvestigator(investigator);
+      ticket.setStatus(TicketStatus.OPEN);
+
+      when(securityUtils.getCurrentUser()).thenReturn(admin);
+      when(ticketRepository.findById(1L)).thenReturn(Optional.of(ticket));
+
+      // Act
+      ResponseStatusException ex =
+          assertThrows(ResponseStatusException.class, () -> ticketService.unassignInvestigator(1L));
+
+      // Assert
+      assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
+      verify(ticketRepository, never()).save(any());
+    }
+  }
 }

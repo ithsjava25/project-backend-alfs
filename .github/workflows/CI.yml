@@ -34,7 +34,7 @@ jobs:
           cache: maven
 
       - name: Build
-        run: mvn -B clean verify
+        run: mvn -B clean verify spotless:check
 
       - name: Publish test results
         uses: dorny/test-reporter@v3

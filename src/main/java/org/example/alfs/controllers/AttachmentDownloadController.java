@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import java.nio.charset.StandardCharsets;
 import org.example.alfs.entities.Attachment;
 import org.example.alfs.services.AttachmentService;
 import org.example.alfs.services.storage.MinioStorageService;
@@ -20,78 +21,73 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.nio.charset.StandardCharsets;
-
 @RestController
 @RequestMapping("/api/files")
 public class AttachmentDownloadController {
 
-    private final AttachmentService attachmentService;
-    private final MinioStorageService storageService;
+  private final AttachmentService attachmentService;
+  private final MinioStorageService storageService;
 
-    public AttachmentDownloadController(AttachmentService attachmentService,
-                                        MinioStorageService storageService) {
-        this.attachmentService = attachmentService;
-        this.storageService = storageService;
+  public AttachmentDownloadController(
+      AttachmentService attachmentService, MinioStorageService storageService) {
+    this.attachmentService = attachmentService;
+    this.storageService = storageService;
+  }
+
+  @GetMapping("/{id}/download")
+  @Operation(
+      summary = "Download attachment",
+      description = "Downloads a file attached to a ticket.")
+  @ApiResponses(
+      value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "File downloaded successfully",
+            content =
+                @Content(
+                    mediaType = "application/octet-stream",
+                    schema = @Schema(type = "string", format = "binary"))),
+        @ApiResponse(responseCode = "403", description = "Access denied"),
+        @ApiResponse(responseCode = "404", description = "Attachment not found"),
+        @ApiResponse(responseCode = "502", description = "Failed to fetch file from storage")
+      })
+  public ResponseEntity<Resource> download(
+      @Parameter(description = "ID of the attachment", example = "1") @PathVariable Long id) {
+
+    Attachment att = attachmentService.getAttachmentById(id);
+
+    final GetObjectResponse object;
+    try {
+      object = storageService.download(att.getS3Key());
+    } catch (Exception ex) {
+      throw new ResponseStatusException(
+          HttpStatus.BAD_GATEWAY, "Failed to download attachment content", ex);
     }
 
-    @GetMapping("/{id}/download")
-    @Operation(
-            summary = "Download attachment",
-            description = "Downloads a file attached to a ticket."
-    )
-    @ApiResponses(value = {
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "File downloaded successfully",
-                    content = @Content(
-                            mediaType = "application/octet-stream",
-                            schema = @Schema(type = "string", format = "binary")
-                    )
-            ),
-            @ApiResponse(responseCode = "403", description = "Access denied"),
-            @ApiResponse(responseCode = "404", description = "Attachment not found"),
-            @ApiResponse(responseCode = "502", description = "Failed to fetch file from storage")
-    })
-    public ResponseEntity<Resource> download( 
-            @Parameter(description = "ID of the attachment", example = "1")
-            @PathVariable Long id
-    ) {
+    String fileName = att.getFileName() != null ? att.getFileName() : "file";
 
-        Attachment att = attachmentService.getAttachmentById(id);
-        
-        final GetObjectResponse object;
-        try {
-            object = storageService.download(att.getS3Key());
-        } catch (Exception ex) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_GATEWAY,
-                    "Failed to download attachment content",
-                    ex
-            );
-        }
+    String contentDisposition =
+        ContentDisposition.builder("attachment")
+            .filename(fileName, StandardCharsets.UTF_8)
+            .build()
+            .toString();
 
-        String fileName = att.getFileName() != null ? att.getFileName() : "file";
+    InputStreamResource resource = new InputStreamResource(object);
 
-        String contentDisposition = ContentDisposition.builder("attachment")
-                .filename(fileName, StandardCharsets.UTF_8)
-                .build()
-                .toString();
+    long contentLength =
+        object.headers().get("Content-Length") != null
+            ? Long.parseLong(object.headers().get("Content-Length"))
+            : -1;
 
-        InputStreamResource resource = new InputStreamResource(object);
+    ResponseEntity.BodyBuilder builder =
+        ResponseEntity.ok()
+            .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition)
+            .contentType(MediaType.APPLICATION_OCTET_STREAM);
 
-        long contentLength = object.headers().get("Content-Length") != null
-                ? Long.parseLong(object.headers().get("Content-Length"))
-                : -1;
-
-        ResponseEntity.BodyBuilder builder = ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition)
-                .contentType(MediaType.APPLICATION_OCTET_STREAM);
-
-        if (contentLength > 0) {
-            builder.contentLength(contentLength);
-        }
-
-        return builder.body(resource);
+    if (contentLength > 0) {
+      builder.contentLength(contentLength);
     }
+
+    return builder.body(resource);
+  }
 }

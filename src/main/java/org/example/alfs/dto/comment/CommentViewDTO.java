@@ -1,8 +1,7 @@
 package org.example.alfs.dto.comment;
 
-import lombok.Data;
-
 import java.time.LocalDateTime;
+import lombok.Data;
 
 /*
  * DTO returned when retrieving comments for a ticket.
@@ -17,19 +16,16 @@ import java.time.LocalDateTime;
 @Data
 public class CommentViewDTO {
 
-    private Long id;
-    private String message;
-    private String author;
-    private String role;
-    private LocalDateTime createdAt;
+  private Long id;
+  private String message;
+  private String author;
+  private String role;
+  private LocalDateTime createdAt;
 
-    private boolean internalNote;
+  private boolean internalNote;
 
-
-    public String getFormattedCreatedAt() {
-        if (createdAt == null) return "";
-        return createdAt.format(
-                java.time.format.DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm")
-        );
-    }
+  public String getFormattedCreatedAt() {
+    if (createdAt == null) return "";
+    return createdAt.format(java.time.format.DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm"));
+  }
 }
